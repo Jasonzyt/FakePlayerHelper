@@ -12,10 +12,10 @@ using namespace std;
 
 namespace FPHelper
 {
-	Config cfg;
+	Config* cfg;
+	FPWS* fpws;
 	stdio_commit sc("[FPH] ");
 	Logger<stdio_commit*> coutp(&sc, true);
-	vector<FakePlayer*> fp_list;
 	VA p_spscqueue;
 
 	namespace CMD
@@ -35,12 +35,12 @@ namespace FPHelper
 			if (type == OriginType::DedicatedServer || type == OriginType::Player)
 			{
 				ostringstream oss;
-				oss << "Corrent FakePlayer: " << fp_list.size() << "/" << cfg.max_global_fp << endl;
-				if (fp_list.size())
+				oss << "Corrent FakePlayer: " << fpws->fp_list.size() << "/" << cfg->max_global_fp << endl;
+				if (fpws->fp_list.size())
 				{
 					oss << "=========== FakePlayer List ===========" << endl;
 					int i = 1;
-					for (auto& it : fp_list)
+					for (auto& it : fpws->fp_list)
 					{
 						// - [1] Name: FakePlayer_1(Summoner: Jasonzyt) Pos: Overworld(100,64,50)
 						oss << "- [" << i << "] Name: " << it->name << "(Summoner: " << it->summoner_name << ") "
@@ -61,7 +61,15 @@ namespace FPHelper
 				{
 				case FPCMD_Add_Remove::Add:
 				{
-					
+					string fp_summoner;
+					xuid_t fp_summoner_xuid = 0;
+					if (type == OriginType::DedicatedServer) fp_summoner = "[Console]";
+					else
+					{
+						Player* exer = (Player*)ori.getEntity();
+						
+					}
+					auto res = fpws->add(new FakePlayer(name, fp_summoner, fp_summoner_xuid));
 					break;
 				}
 				case FPCMD_Add_Remove::Remove:
@@ -78,8 +86,8 @@ namespace FPHelper
 	{
 		PRINT("FakePlayerHelper loaded! Author: Jasonzyt");
 		PRINT("Reading config...");
-		cfg.init();
-		cfg.parseJson();
+		cfg->init();
+		cfg->parseJson();
 		Event::addEventListener([](RegCmdEV ev) {
 			PRINT("Registering command...");
 			CMDREG::SetCommandRegistry(ev.CMDRg);

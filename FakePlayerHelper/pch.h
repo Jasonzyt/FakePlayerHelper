@@ -50,9 +50,11 @@ namespace FPHelper
 	namespace fs = std::filesystem;
 	// 类声明
 	class Config;
+	class FPWS;
 	// 外部变量
 	extern Logger<stdio_commit*> coutp;
-	extern Config cfg;
+	extern Config* cfg;
+	extern FPWS* fpws;
 
 	const std::string FPH_VERSION = "1.0.0";
 	const std::string FPH_VERTYPE = "Beta";

@@ -4,17 +4,17 @@ using namespace std;
 
 namespace FPHelper
 {
-	void FakePlayer::init()
+	void FPWS::init()
 	{
-		ws = WebSocket::from_url("ws://localhost:" + std::to_string(cfg.ws_port));
+		ws = WebSocket::from_url("ws://localhost:" + std::to_string(cfg->ws_port));
 		assert(ws);
 	}
-	bool FakePlayer::add()
+	bool FPWS::add(FakePlayer* fp)
 	{
 
 	}
 
-	void FakePlayer::process()
+	void FPWS::process()
 	{
 		this->pool->enqueue([&]() {
 			while (ws->getReadyState() != WebSocket::CLOSED)
