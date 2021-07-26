@@ -51,7 +51,10 @@ namespace FPHelper
 		std::vector<FakePlayer*> fp_list;
 		std::vector<FakePlayer*> wait_list;
 		int reconnect_num = 0;
-		FPWS(){}
+		FPWS()
+		{
+			pool = new ThreadPool(2);
+		}
 		void connect_ws();
 		Error add(FakePlayer* fp);
 		Error remove(FakePlayer* fp);

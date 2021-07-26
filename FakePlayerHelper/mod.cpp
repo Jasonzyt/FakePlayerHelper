@@ -5,7 +5,7 @@
 #include "langpack.h"
 #include "fakeplayer.h"
 #include <loader/hook.h>
-#include <mc/Command/Command.h>
+#include <mc/Command.h>
 #include <api/commands.h>
 #include <api/Basic_Event.h>
 
@@ -44,17 +44,17 @@ namespace FPHelper
 			if (type == OriginType::DedicatedServer || type == OriginType::Player)
 			{
 				ostringstream oss;
-				oss << format("%s: %d/%d\n", LANG("listcmd.opt.total"), fpws->fp_list.size(), cfg->max_global_fp);
+				oss << format("%s: %d/%d", LANG("listcmd.opt.total"), fpws->fp_list.size(), cfg->max_global_fp);
 				if (fpws->fp_list.size())
 				{
-					oss << format("=========== %s ===========\n", LANG("listcmd.opt.header"));
+					oss << format("\n=========== %s ===========\n", LANG("listcmd.opt.header"));
 					int i = 1;
 					for (auto& it : fpws->fp_list)
 					{
 						// - [1] Name: FakePlayer_1(Summoner: Jasonzyt) Pos: Overworld(100,64,50)
 						oss << format("- [%d] %s: %s(%s: %s) %s: %s%s)\n", i, LANG("listcmd.opt.fpname"),
-							it->name, LANG("listcmd.opt.summoner"), it->summoner_name, LANG("listcmd.opt.fppos"),
-							LANG(getDimensionName(it->dim)), Vec3ToString(it->pos));
+							it->name.c_str(), LANG("listcmd.opt.summoner"), it->summoner_name.c_str(), 
+							LANG("listcmd.opt.fppos"), LANG(getDimensionName(it->dim)), Vec3ToString(it->pos).c_str());
 					}
 					oss << "=======================================" << endl;
 				}
@@ -67,16 +67,31 @@ namespace FPHelper
 			auto type = ori.getOriginType();
 			if (type == OriginType::DedicatedServer || type == OriginType::Player)
 			{
-					string fp_summoner;
-					xuid_t fp_summoner_xuid = 0;
-					if (type == OriginType::DedicatedServer) fp_summoner = "[Console]";
-					else
+				if (fpws->fp_list.size() >= cfg->max_global_fp)
+				{
+					outp.error(LANG("fpcmd.global_limit.exceed"));
+					return true;
+				}
+				string fp_summoner;
+				xuid_t fp_summoner_xuid = 0;
+				if (type == OriginType::DedicatedServer) fp_summoner = "[Console]";
+				else
+				{
+					int sum = 0;
+					Player* exer = (Player*)ori.getEntity();
+					fp_summoner = exer->getNameTag();
+					fp_summoner_xuid = getXuid(exer);
+					for (auto& it : fpws->fp_list)
+						if (it->summoner_xuid == fp_summoner_xuid)
+							sum++;
+					if (sum >= cfg->max_player_fp)
 					{
-						Player* exer = (Player*)ori.getEntity();
-						fp_summoner = exer->getNameTag();
-						fp_summoner_xuid = getXuid(exer);
+						outp.error(LANG("fpcmd.player_limit.exceed"));
+						return true;
 					}
-					auto res = fpws->add(new FakePlayer(name, fp_summoner, fp_summoner_xuid));
+				}
+				auto res = fpws->add(new FakePlayer(name, fp_summoner, fp_summoner_xuid));
+				outp.success(to_string((int)res));
 			}
 			return true;
 		}
@@ -85,7 +100,9 @@ namespace FPHelper
 			auto type = ori.getOriginType();
 			if (type == OriginType::DedicatedServer || type == OriginType::Player)
 			{
-
+				for (auto& it : fpws->fp_list)
+					if (name == it->name)
+						fpws->remove(it);
 			}
 			return true;
 		}
@@ -94,7 +111,7 @@ namespace FPHelper
 			auto type = ori.getOriginType();
 			if (type == OriginType::DedicatedServer || type == OriginType::Player)
 			{
-
+				outp.error(LANG("fp.api.unfinished"));
 			}
 			return true;
 		}
@@ -160,7 +177,7 @@ namespace FPHelper
 		Event::addEventListener([](RegCmdEV ev) {
 			PRINT(LANG("dllinit.register_cmd"));
 			CMDREG::SetCommandRegistry(ev.CMDRg);
-			MakeCommand("fp", LANG("fpcmd.root.desc").c_str(), CommandPermissionLevel::Normal);
+			MakeCommand("fp", string(LANG("fpcmd.root.desc")).c_str(), CommandPermissionLevel::Normal);
 			CEnum<CMD::FPCMD_List> _cenum1("list", { "list" });
 			CEnum<CMD::FPCMD_Add> _cenum2("add", { "add" });
 			CEnum<CMD::FPCMD_Remove> _cenum3("remove", { "remove" });
@@ -188,7 +205,7 @@ namespace FPHelper
 	}
 }
 using namespace FPHelper;
-
+FPHAPI bool IsFakePlayer(Player* pl);
 THook(VA, "??0?$SPSCQueue@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@$0CAA@@@QEAA@_K@Z", VA _this)
 {
 	p_spscqueue = original(_this);
@@ -209,9 +226,12 @@ THook(void, "?sendLoginMessageLocal@ServerNetworkHandler@@QEAAXAEBVNetworkIdenti
 			fp->online = true;
 			fp->dim = pl->getDimensionId();
 			fp->pos = pl->getPos();
-			auto info = format(LANG("fp.join.info.format"), fp->name, 
-				LANG(getDimensionName(fp->dim)), Vec3ToString(fp->pos));
+			fpws->wait_list.erase(it);
+			fpws->fp_list.push_back(fp);
+			auto info = format(LANG("fp.join.info.format"), fp->name.c_str(), 
+				LANG(getDimensionName(fp->dim)), Vec3ToString(fp->pos).c_str());
 			PRINT(info);
+			sendTextAll(info, TextType::RAW);
 		}
 	}
 	return original(ServerNetworkHandler_this, Ni, ConnectionRequest, sp);
@@ -220,19 +240,47 @@ THook(void, "?_onPlayerLeft@ServerNetworkHandler@@AEAAXPEAVServerPlayer@@_N@Z",
 	ServerNetworkHandler* _this, ServerPlayer* sp, bool a3)
 {
 	auto pl = (Player*)sp;
+	for (auto it = fpws->fp_list.begin();
+		it != fpws->fp_list.end(); it++)
+	{
+		FakePlayer* fp = *it;
+		if ((*it)->name == pl->getNameTag())
+		{
+			fpws->fp_list.erase(it);
+			auto info = format(LANG("fp.left.info.format"), fp->name.c_str(), 
+				LANG(getDimensionName(fp->dim)), Vec3ToString(fp->pos).c_str());
+			delete fp;
+			PRINT(info);
+			sendTextAll(info, TextType::RAW);
+			return original(_this, sp, a3);
+		}
+	}
 	if (cfg->kick_fp)
 	{
-		
+		for (auto it = fpws->fp_list.begin();
+			it != fpws->fp_list.end(); it++)
+		{
+			if (getXuid(pl) == (*it)->summoner_xuid)
+			{
+				fpws->remove((*it));
+				auto info = format(LANG("fp.summoner.left.kick"), (*it)->name.c_str());
+				PRINT(info);
+				sendTextAll(info, TextType::RAW);
+			}
+		}
 	}
 	return original(_this, sp, a3);
 }
-THook(void, "?initAsDedicatedServer@Minecraft@@QEAAXXZ", Minecraft* _mc) {
+THook(void, "?initAsDedicatedServer@Minecraft@@QEAAXXZ", Minecraft* _mc) 
+{
 	mc = _mc;
 	original(mc);
 }
-THook(void, "?startServerThread@ServerInstance@@QEAAXXZ", void* a) {
-	original(a);
+THook(void, "?startServerThread@ServerInstance@@QEAAXXZ", void* a) 
+{
+	fpws->connect_ws();
 	level = mc->getLevel();
+	original(a);
 }
 
 
@@ -240,7 +288,14 @@ THook(void, "?startServerThread@ServerInstance@@QEAAXXZ", void* a) {
 FPHAPI vector<Player*> getFakePlayers()
 {
 	vector<Player*> rv;
-	for (auto& it : FPHelper::fpws->fp_list)
+	for (auto& it : fpws->fp_list)
 		rv.push_back(it->fp_ptr);
 	return rv;
+}
+FPHAPI bool IsFakePlayer(Player* pl)
+{
+	for (auto& it : fpws->fp_list)
+		if (pl->getNameTag() == it->name)
+			return true;
+	return false;
 }

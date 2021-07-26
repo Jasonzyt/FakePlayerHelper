@@ -52,16 +52,16 @@ namespace FPHelper
 				lang.emplace(std::pair<std::string, std::string>(key, val));
 			}
 		}
-		inline std::string get(const std::string& key)
+		inline const char* get(const std::string& key)
 		{
 			if (!key.empty())
 			{
 				auto res = lang.find(key);
 				if (res != lang.end())
-					return res->second;
+					return res->second.c_str();
 				PRINT<ERROR, RED>("Cannot find langpack for ", key);
 			}
-			return key;
+			return key.c_str();
 		}
 	};
 }

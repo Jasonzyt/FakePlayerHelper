@@ -18,7 +18,7 @@ namespace FPHelper
 	}
 	void FPWS::connect_ws()
 	{
-		string url = "ws://localhost:" + to_string(cfg->ws_port);
+		string url = "ws://127.0.0.1:" + to_string(cfg->ws_port);
 		ws = WebSocket::from_url(url);
 		if (this->ws)
 		{
@@ -43,8 +43,24 @@ namespace FPHelper
 			Document doc;
 			doc.Parse(msg.c_str());
 			if (doc.HasParseError()) return Error::Json_ParseErr;
-			if (doc["type"].GetString() != "add") return Error::Resp_TypeErr;
+			if (doc["type"] != Value().SetString("add")) return Error::Resp_TypeErr;
 			if (!doc["data"]["success"].GetBool()) return Error::Fail;
+			status = Status::READY;
+			return Error::Success;
+		}
+	}
+	FPWS::Error FPWS::remove(FakePlayer* fp)
+	{
+		send(PackType::Remove, fp);
+		if (wait_response() == Error::Success)
+		{
+			Document doc;
+			doc.Parse(msg.c_str());
+			if (doc.HasParseError()) return Error::Json_ParseErr;
+			if (doc["type"] != Value().SetString("remove")) return Error::Resp_TypeErr;
+			if (!doc["data"]["success"].GetBool()) return Error::Fail;
+			status = Status::READY;
+			return Error::Success;
 		}
 	}
 	FPWS::Error FPWS::wait_response()
@@ -89,7 +105,7 @@ namespace FPHelper
 					PRINT<WARN, RED>("fpws.invalid.skin");
 					skin = "steve";
 				}
-				ws->send(format(R"({"type":"add","data":{"name":"%s","skin":""}})", fp->name));
+				ws->send(format(R"({"type":"add","data":{"name":"%s","skin":"%s"}})", fp->name, skin));
 				wait_list.push_back(fp);
 				status = Status::WAITING;
 				return 1;
@@ -137,6 +153,7 @@ namespace FPHelper
 				ws->poll();
 				ws->dispatch([&](const string& _msg) {
 					msg = _msg;
+					PRINT<DEBUG, BLUE>("WebSocket Packet: \n", msg);
 					status = Status::PENDING;
 				});
 			}

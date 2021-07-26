@@ -156,10 +156,14 @@
     <ClInclude Include="mass.h" />
     <ClInclude Include="myPacket.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="threadpool.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="langpack.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="FakePlayerHelper.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

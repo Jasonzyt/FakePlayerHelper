@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <tuple>
-#include <mc/Command/CommandReg.h>
+#include <mc/CommandReg.h>
 #include <stl/optional.h>
 CommandRegistry* CmdRegGlobal = nullptr;
 namespace CMDREG {

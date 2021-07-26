@@ -23,9 +23,15 @@
     "fpcmd.fpname": "假人名称",
     "fpcmd.tp.selector": "目标实体",
     "fpcmd.tp.dst": "目的地",
+    "fpcmd.tp.dim": "维度",
     "fpcmd.cant_find_fp": "找不到目标假人,可能是未连接!",
     "fpcmd.selector.not_match": "目标选择器无匹配!",
-    "fp.join.info.format": "假人 %s 进入了游戏,位置: %s%s"
+    "fpcmd.global_limit.exceed": "全局假人数量已达到上限!",
+    "fpcmd.player_limit.exceed": "你召唤的假人数量已达到上限!",
+    "fpcmd.api.unfinished": "你现在不能使用此命令,接口还未完成",
+    "fp.join.info.format": "假人 %s 进入了游戏,位置: %s%s",
+    "fp.left.info.format": "假人 %s 退出了游戏,位置: %s%s",
+    "fp.summoner.left.kick": "由于服主设置了假人召唤者离开时移除假人,即将移除假人 %s"
   },
   "en": {
     "Overworld": "Overworld",
@@ -51,8 +57,14 @@
     "fpcmd.fpname": "FakePlayer name",
     "fpcmd.tp.selector": "Target entity",
     "fpcmd.tp.dst": "Destination",
+    "fpcmd.tp.dim": "Dimension",
     "fpcmd.cant_find_fp": "Cannot find target FakePlayer.Maybe it is not connect.",
     "fpcmd.selector.not_matched": "No match for Target Selector",
-    "fp.join.info.format": "FakePlayer %s joined,Position: %s%s"
+    "fpcmd.global_limit.exceed": "The number of global FakePlayers has reached the upper limit!",
+    "fpcmd.player_limit.exceed": "The number of FakePlayers you summoned has reached the upper limit!",
+    "fpcmd.api.unfinished": "You cannot use this command because API unfinished yet",
+    "fp.join.info.format": "FakePlayer %s joined,position: %s%s",
+    "fp.left.info.format": "FakePlayer %s left,position: %s%s",
+    "fp.summoner.left.kick": "Because the server owner has set removing FakePlayer when its summoner leaves,about to remove FakePlayer %s"
   }
 }
