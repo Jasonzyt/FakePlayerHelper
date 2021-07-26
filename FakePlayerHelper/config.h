@@ -12,7 +12,8 @@ namespace FPHelper
 	class Config
 	{
 	public:
-		std::string skin = "random"; // steve/alex/random
+		std::string skin = ""; // steve/alex/random
+		std::string lang = "";
 		bool allow_tp = true;
 		bool kick_fp = false; // Kick fakeplayer when summoner left
 		int max_global_fp = 0; // 0 = Unlimited
@@ -27,18 +28,25 @@ namespace FPHelper
 		Document doc;
 		rapidjson::MemoryPoolAllocator<rapidjson::CrtAllocator> alloc;
 	public:
+		Config(){}
 		inline void init()
 		{
 			doc.SetObject();
-			FILE* fp = fopen(FPH_CONFIG.c_str(), "a+");
-			size_t sz = fs::file_size(FPH_CONFIG);
-			char* buf = new char[sz];
-			fseek(fp, 0, 0);
-			if (fread(buf, sz, 1, fp));
-				doc.Parse(buf);
-				if (doc.HasParseError()) throw std::exception("Failed to parse JSON");
-			alloc = doc.GetAllocator();
-			fclose(fp);
+			if (fs::exists(FPH_CONFIG))
+			{
+				std::fstream fstm(FPH_CONFIG, std::ios::out | std::ios::in | std::ios::app);
+				std::ostringstream oss;
+				oss << fstm.rdbuf();
+				std::string buf = oss.str();
+				doc.Parse(buf.c_str());
+				fstm.close();
+				if (doc.HasParseError())
+				{
+					throw std::exception(("Failed to parse JSON: errcode(" + std::to_string(doc.GetParseError()) + ")").c_str());
+					return;
+				}
+				alloc = doc.GetAllocator();
+			}
 		}
 		inline bool writeJson()
 		{
@@ -55,6 +63,9 @@ namespace FPHelper
 		{
 			if (!doc.HasMember("Skin") || !doc["Skin"].IsString()) 
 				doc.AddMember("Skin", Value().SetString("random"), alloc);
+
+			if (!doc.HasMember("Language") || !doc["Language"].IsString())
+				doc.AddMember("Language", Value().SetString("zh-cn"), alloc);
 
 			if (!doc.HasMember("Allow_TP") || !doc["Allow_TP"].IsBool())
 				doc.AddMember("Allow_TP", true, alloc);
@@ -82,11 +93,14 @@ namespace FPHelper
 
 			writeJson();
 			skin = doc["Skin"].GetString();
+			lang = doc["Language"].GetString();
 			allow_tp = doc["Allow_TP"].GetBool();
 			kick_fp = doc["Kick_FP_when_summoner_left"].GetBool();
 			max_global_fp = doc["Max_Global_FP"].GetInt();
 			max_player_fp = doc["Max_Player_FP"].GetInt();
 			ws_port = doc["WS_Port"].GetInt();
+			if (ws_port <= 0 || ws_port > 65535)
+				throw std::exception("Invalid websocket port!!!");
 			std::string perm_str = doc["Permission"]["Allow"].GetString();
 			if (perm_str == "ALL") perm.type = Permission::ALL;
 			else if (perm_str == "Specified") perm.type = Permission::Specified;
@@ -94,7 +108,7 @@ namespace FPHelper
 			else throw std::exception("Invalid permission");
 			if (perm.type == Permission::Specified && !doc["Permission"]["Specified"].Empty())
 			{
-				for (int i = 0; i < doc["Permission"]["Specified"].Size(); i++)
+				for (u32 i = 0; i < doc["Permission"]["Specified"].Size(); i++)
 					perm.allow_list.push_back(doc["Permission"]["Specified"][i].GetUint64());
 			}
 		}

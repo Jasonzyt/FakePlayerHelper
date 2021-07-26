@@ -641,7 +641,10 @@ public:
 	}
 	MCINLINE void teleportTo(class Vec3 const& a0, bool a1, int a2, int a3) {
 		void (Player::*rv)(class Vec3 const&, bool, int, int);
-		*((void**)&rv) = dlsym("?teleportTo@Player@@UEAAXAEBVVec3@@_NHH@Z");
+		// Jasonzyt Modified / Start
+		*((void**)&rv) = dlsym("?teleportTo@Player@@UEAAXAEBVVec3@@_NHHAEBUActorUniqueID@@@Z");
+		//*((void**)&rv) = dlsym("?teleportTo@Player@@UEAAXAEBVVec3@@_NHH@Z");
+		// Jasonzyt Modified / End
 		return (this->*rv)(a0, a1, a2, a3);
 	}
 	MCINLINE int getItemUseDuration() {

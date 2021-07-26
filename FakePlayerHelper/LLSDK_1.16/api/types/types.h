@@ -13,9 +13,15 @@ typedef unsigned long long xuid_t;
 typedef unsigned char permlvl_t;
 enum TextType : char {
 	RAW = 0,
+	CHAT = 1,
+	TRANSLATION = 2,
 	POPUP = 3,
 	JUKEBOX_POPUP = 4,
-	TIP = 5
+	TIP = 5,
+	SYSTEM = 6,
+	WHISPER = 7,
+	ANNOUNCEMENT = 8,
+	JSON = 9
 };
 template <typename T>
 struct Wrapped {

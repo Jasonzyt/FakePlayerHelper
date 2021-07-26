@@ -21,6 +21,12 @@ public:
 	std::string toString() {
 		return "(" + std::to_string(x) + "," + std::to_string(y) + "," + std::to_string(z) + ")";
 	}
+	bool operator==(const Vec3& _Right)
+	{
+		if (x == _Right.x && y == _Right.y && z == _Right.z) 
+			return true;
+		return false;
+	}
 	//template<typename _TP>
 /*	void pack(WBStreamImpl<_TP>& ws) const {
 		ws.apply(x, y, z);

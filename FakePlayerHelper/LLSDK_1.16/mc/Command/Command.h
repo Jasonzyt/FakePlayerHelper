@@ -8,11 +8,34 @@
 #include <mc/Core.h>
 #include <api/types/types.h>
 //MC_COMMAND_EXTRA
+
 class CommandRegistry;
 class CommandOrigin;
 class CommandOutput;
 class Actor;
 class Player;
+// Jasonzyt Added / Start
+class CommandPosition {
+public:
+	inline Vec3* getPosition(const CommandOrigin& ori)
+	{
+		const Vec3* unk1 = new Vec3;
+		Vec3 unk2;
+		return SymCall(
+			"?getPosition@CommandPosition@@QEBA?AVVec3@@AEBVCommandOrigin@@AEBV2@@Z",
+			Vec3*, CommandPosition*, const Vec3&, const CommandOrigin&, Vec3*)(this, *unk1, ori, &unk2);
+	}
+	inline BlockPos* getBlockPos(const CommandOrigin& ori)
+	{
+		const BlockPos* unk1 = new BlockPos;
+		Vec3 unk2;
+		return SymCall(
+			"?getBlockPos@CommandPosition@@QEBA?AVBlockPos@@AEBVCommandOrigin@@AEBVVec3@@@Z",
+			BlockPos*, CommandPosition*, const BlockPos&, const CommandOrigin&, Vec3*)(this, *unk1, ori, &unk2);
+	}
+};
+class CommandPositionFloat : public CommandPosition {};
+// Jasonzyt Added / End
 //enum CommandPermissionLevel : char;
 enum CommandPermissionLevel :char {
 	Normal = 0,

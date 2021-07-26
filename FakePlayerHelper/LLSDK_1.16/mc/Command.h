@@ -4,20 +4,7 @@
 #include <mc\Dimension.h>
 #include <mc\Actor.h>
 
-enum class OriginType : char {
-	Player = 0,
-	Block = 1,
-	MinecartBlock = 2,
-	DevConsole = 3,
-	Test = 4,
-	AutomationPlayer = 5,
-	ClientAutomation = 6,
-	DedicatedServer = 7,
-	Actor = 8,
-	Virtual = 9,
-	GameArgument = 10,
-	ActorServer = 11
-};
+enum class OriginType : char;
 
 class CommandOrigin {
 public:

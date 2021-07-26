@@ -50,6 +50,18 @@ namespace CMDREG {
 			"?id@?1???$type_id@VCommandRegistry@@V?$CommandSelector@VPlayer@@@@@@YA?AV?$typeid_t@VCommandRegistry@@@@XZ@4V1@"
 			"A");
 	}
+	// Jasonzyt Added / Start
+	template<>
+	inline typeid_t<CommandRegistry> getTPID<CommandPosition>() {
+		return GETID(
+			"?id@?1???$type_id@VCommandRegistry@@VCommandPosition@@@@YA?AV?$typeid_t@VCommandRegistry@@@@XZ@4V1@A");
+	}
+	template<>
+	inline typeid_t<CommandRegistry> getTPID<CommandPositionFloat>() {
+		return GETID(
+			"?id@?1???$type_id@VCommandRegistry@@VCommandPositionFloat@@@@YA?AV?$typeid_t@VCommandRegistry@@@@XZ@4V1@A");
+	}
+	// Jasonzyt Added / End
 	template <typename T>
 	class CEnum {
 	public:
@@ -60,7 +72,7 @@ namespace CMDREG {
 			if (myid.value == 65535) {
 				myid = ALLOCID();
 				if (CmdRegGlobal == nullptr) {
-					std::cout << "CmdRegGlobal Not Set" << endl;
+					std::cout << "CmdRegGlobal Not Set" << std::endl;
 					exit(1);
 				}
 				CmdRegGlobal->addEnumValues(name, myid, values);
@@ -84,9 +96,9 @@ namespace CMDREG {
 	};
 
 	static inline void MakeCommand(string const& name, const char* desc, int lvl) {
-		std::cout << "RegisteringCommand > " << name << endl;
+		//std::cout << "RegisteringCommand > " << name << std::endl;
 		if (CmdRegGlobal == nullptr) {
-			std::cout << "CmdRegGlobal Not Set" << endl;
+			std::cout << "CmdRegGlobal Not Set" << std::endl;
 			exit(1);
 		}
 		SymCall("?registerCommand@CommandRegistry@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEBDW4CommandPermissionLevel@@UCommandFlag@@3@Z",
@@ -169,7 +181,7 @@ namespace CMDREG {
 		}
 		inline void regMe(string const& cname, std::vector<CommandParameterData>&& vc) {
 			if (CmdRegGlobal == nullptr) {
-				std::cout << "CmdRegGlobal Not Set" << endl;
+				std::cout << "CmdRegGlobal Not Set" << std::endl;
 				exit(1);
 			}
 			CmdRegGlobal->registerOverload(cname, &factory, std::forward< std::vector<CommandParameterData>>(vc));

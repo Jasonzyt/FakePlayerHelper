@@ -50,5 +50,16 @@
     <ClInclude Include="mass.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="langpack.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="myPacket.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="langpack.json">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>

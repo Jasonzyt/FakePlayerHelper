@@ -151,12 +151,22 @@
   <ItemGroup>
     <ClInclude Include="config.h" />
     <ClInclude Include="fakeplayer.h" />
+    <ClInclude Include="langpack.h" />
     <ClInclude Include="logger.h" />
     <ClInclude Include="mass.h" />
+    <ClInclude Include="myPacket.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="threadpool.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="langpack.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties />
+    </VisualStudio>
+  </ProjectExtensions>
 </Project>
