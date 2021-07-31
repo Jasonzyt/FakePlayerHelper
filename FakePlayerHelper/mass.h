@@ -2,8 +2,10 @@
 #define MASS_H
 #include "pch.h"
 #include "myPacket.h"
+#include "logger.h"
 #include <mc/Player.h>
 #include <mc/Level.h>
+#include <mc/Certificate.h>
 #include <api/types/types.h>
 #include <loader/loader.h>
 
@@ -19,7 +21,6 @@ namespace FPHelper
 	}
 	inline void forEachPlayer(std::function<bool(Player&)> cb)
 	{
-		std::vector<Player*> player_list;
 #if defined(BDS_V1_16)
 		SymCall("?forEachPlayer@Level@@QEBAXV?$function@$$A6A_NAEBVPlayer@@@Z@std@@@Z",
 			void, Level*, std::function<bool(Player&)>)(level, cb);
@@ -34,6 +35,7 @@ namespace FPHelper
 		std::vector<Player*> player_list;
 		forEachPlayer([&](Player& pl) -> bool {
 			Player* player = &pl;
+			if (!player) return false;
 			player_list.push_back(player);
 			return true;
 		});
@@ -45,17 +47,27 @@ namespace FPHelper
 		SymCall(
 			"?createPacket@MinecraftPackets@@SA?AV?$shared_ptr@VPacket@@@std@@W4MinecraftPacketIds@@@Z",
 			void*, Packet**, int)(&pkt, 9);  //创建包
+#if defined(BDS_V1_16)
+		dAccess<char, 40>(pkt) = (char)tp;
+		dAccess<std::string, 48>(pkt) = "Server";
+		dAccess<std::string, 80>(pkt) = text;
+#elif defined(BDS_V1_17)
+#else
 		dAccess<char, 48>(pkt) = (char)tp;
-		dAccess<string, 56>(pkt) = u8"Server";
+		dAccess<string, 56>(pkt) = "Server";
 		// dAccess<string, 48>(pkt) = this->getName();
 		dAccess<string, 88>(pkt) = text;
+#error "BDS version is wrong"
+#endif
 		pl->sendNetworkPacket(*pkt);
 	}
 	inline void sendTextAll(const std::string& text, TextType tp)
 	{
 		forEachPlayer([&](Player& pl) -> bool {
 			Player* player = &pl;
-			sendText(player, text, tp);
+			if (!player) return false;
+			//sendText(player, text, tp);
+			return true;
 		});
 	}
 	inline std::string getVersion()
@@ -65,15 +77,36 @@ namespace FPHelper
 			std::string&, std::string&)(a);		// IDA Common::getGameVersionString
 		return a;
 	}
+	inline Certificate* getCert(Player* pl) 
+	{
+#if defined(BDS_V1_16)
+		return FETCH(Certificate*, pl + 2736);
+#elif defined(BDS_V1_17)
+		return SymCall("?getCertificate@Player@@QEBAPEBVCertificate@@XZ", Certificate*, Player*)(pl);
+#else
+#error "BDS version is wrong"
+#endif
+	}
 	inline xuid_t getXuid(Player* pl)
 	{
-		Level* level = SymCall("?getLevel@Actor@@QEBAAEBVLevel@@XZ", Level*, Actor*)(pl);
+		std::string xuid_str = SymCall(
+			"?getXuid@ExtendedCertificate@@SA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@"
+			"@std@@AEBVCertificate@@@Z", std::string, void*)(getCert(pl));
+		/* BAD CODE
 		std::string xuid_str = SymCall("?getPlayerXUID@Level@@QEBAAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AEBVUUID@mce@@@Z",
-			std::string, Level*, VA)(level, FETCH(VA, pl + 2720));
+			std::string&, Level*, VA)(level, FETCH(VA, pl + 2720));
+		*/
 		return atoll(xuid_str.c_str());
 	}
 	inline void teleport(Actor* actor, Vec3 dst, int dim)
 	{
+#if defined(BDS_V1_16)
+		// 先改变维度
+		SymCall("?entityChangeDimension@Level@@QEAAXAEAVActor@@V?$AutomaticID@VDimension@@H@@@Z",
+			__int64, Level*, Actor*, uint32_t)(level, actor, dim);
+		SymCall("?teleportTo@Actor@@UEAAXAEBVVec3@@_NHHAEBUActorUniqueID@@@Z",
+			void, Actor*, const Vec3*, const ActorUniqueID&)(actor, &dst, actor->getUniqueID());
+#elif defined(BDS_V1_17)
 		char mem[128];
 		SymCall(
 			"?computeTarget@TeleportCommand@@SA?AVTeleportTarget@@AEAVActor@@VVec3@@PEAV4@V?$"
@@ -82,6 +115,9 @@ namespace FPHelper
 			int)(&mem, actor, dst, 0, dim, 0, 0, 15);
 		SymCall("?applyTarget@TeleportCommand@@SAXAEAVActor@@VTeleportTarget@@@Z", void, Actor*,
 			void*)(actor, &mem);
+#else
+#error "BDS version is wrong"
+#endif
 	}
 
 	template<typename ... Args>

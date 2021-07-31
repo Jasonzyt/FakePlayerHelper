@@ -10,7 +10,10 @@ public:
 	#ifdef MCAPI_PLAYER_EXTRA
 		MCINLINE void sendNetworkPacket(class Packet& a0) const {
 		void (Player::*rv)(class Packet&) const;
-		*((void**)&rv) = dlsym("?sendNetworkPacket@Player@@UEBAXAEAVPacket@@@Z");
+		// Jasonzyt Modified / Start
+		//*((void**)&rv) = dlsym("?sendNetworkPacket@Player@@UEBAXAEAVPacket@@@Z");
+		*((void**)&rv) = dlsym("?sendNetworkPacket@ServerPlayer@@UEBAXAEAVPacket@@@Z");
+		// Jasonzyt Modified / End
 		return (this->*rv)(a0);
 	}
 		MCINLINE void setPlayerGameType(enum GameType a0) {

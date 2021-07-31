@@ -32,38 +32,71 @@ namespace FPHelper
 			Duplicate_Name = 4,
 			Not_Requested = 5,
 			Json_ParseErr = 6,
-			Resp_TypeErr = 7,
-			Unknown = 8
+			Resp_InvalidID = 7,
+			Send_Failed = 8,
+			Unknown = 9
 		};
-		enum class PackType
+		enum class PacketType
 		{
+			Unknown = -1,
 			List = 0,
 			Add = 1,
 			Remove = 2,
 			Connect = 3,
 			Disconnect = 4,
-			GetState = 5
+			GetState = 5,
+			Remove_All = 6,
+			Connect_All = 7,
+			Disconnect_All = 8,
+			GetVersion = 9
+		};
+		enum class FPState {
+			CONNECTING,
+			CONNECTED,
+			DISCONNECTING,
+			DISCONNECTED,
+			RECONNECTING,
+			STOPPING,
+			STOPPED
+		};
+		struct WSPacket
+		{
+			std::string id;
+			PacketType pt = PacketType::Unknown;
+			FakePlayer* target = nullptr;
+		};
+		struct Response
+		{
+			std::string id, name, reason, version;
+			FPState stat;
+			bool success;
+			PacketType pt;
+			std::vector<std::string> list;
 		};
 		WebSocket::pointer ws = nullptr;
 		ThreadPool* pool = nullptr;
 		Status status = Status::NO_CONNECTION;
-		std::string msg;
+		std::unordered_map<std::string, std::pair<WSPacket*, Response*>> pkts;
 		std::vector<FakePlayer*> fp_list;
 		std::vector<FakePlayer*> wait_list;
 		int reconnect_num = 0;
+		int thread_total = 0;
 		FPWS()
 		{
-			pool = new ThreadPool(2);
+			pool = new ThreadPool(std::thread::hardware_concurrency());
+			srand(time(0));
 		}
 		void connect_ws();
 		Error add(FakePlayer* fp);
 		Error remove(FakePlayer* fp);
 		Error list();
-		void update();
+		Error refresh();
 	private:
+		PacketType parsePacketType(std::string tp);
 		void process();
-		bool send(PackType tp, FakePlayer* fp);
-		Error wait_response();
+		bool send(WSPacket pkt);
+		std::string getID();
+		Error wait_response(std::string id);
 	};
 
 	class FakePlayer

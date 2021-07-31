@@ -47,16 +47,20 @@ namespace FPHelper
 				oss << format("%s: %d/%d", LANG("listcmd.opt.total"), fpws->fp_list.size(), cfg->max_global_fp);
 				if (fpws->fp_list.size())
 				{
-					oss << format("\n=========== %s ===========\n", LANG("listcmd.opt.header"));
+					oss << format("\n=========================== %s ===========================\n", LANG("listcmd.opt.header"));
 					int i = 1;
 					for (auto& it : fpws->fp_list)
 					{
-						// - [1] Name: FakePlayer_1(Summoner: Jasonzyt) Pos: Overworld(100,64,50)
+						// =========================== FakePlayer List ===========================
+						// - [1] Name: FakePlayer_1(Summoner: Jasonzyt) Pos: Overworld(100, 64, 50)
+						// - [2] 假人名: FakePlayer_2(召唤者: Jasonzyt) 位置: 主世界(114, 51, 4)
+						// =======================================================================
 						oss << format("- [%d] %s: %s(%s: %s) %s: %s%s)\n", i, LANG("listcmd.opt.fpname"),
 							it->name.c_str(), LANG("listcmd.opt.summoner"), it->summoner_name.c_str(), 
 							LANG("listcmd.opt.fppos"), LANG(getDimensionName(it->dim)), Vec3ToString(it->pos).c_str());
+						i++;
 					}
-					oss << "=======================================" << endl;
+					oss << "=======================================================================" << endl;
 				}
 				outp.success(oss.str());
 			}
@@ -216,19 +220,19 @@ THook(void, "?sendLoginMessageLocal@ServerNetworkHandler@@QEAAXAEBVNetworkIdenti
 	void* ServerNetworkHandler_this, NetworkIdentifier* Ni, void* ConnectionRequest, ServerPlayer* sp)
 {
 	auto pl = (Player*)sp;
-	auto it = fpws->wait_list.begin();
-	for (; it != fpws->wait_list.end(); it++)
+	auto pname = pl->getNameTag();
+	for (int i = 0; i < fpws->wait_list.size(); i++)
 	{
-		FakePlayer* fp = *it;
-		if (fp->name == pl->getNameTag())
+		auto fp = fpws->wait_list.back();
+		if (fp->name == pname)
 		{
 			fp->fp_ptr = pl;
 			fp->online = true;
 			fp->dim = pl->getDimensionId();
 			fp->pos = pl->getPos();
-			fpws->wait_list.erase(it);
+			fpws->wait_list.pop_back();
 			fpws->fp_list.push_back(fp);
-			auto info = format(LANG("fp.join.info.format"), fp->name.c_str(), 
+			auto info = format(LANG("fp.join.info.format"), fp->name.c_str(),
 				LANG(getDimensionName(fp->dim)), Vec3ToString(fp->pos).c_str());
 			PRINT(info);
 			sendTextAll(info, TextType::RAW);
@@ -282,7 +286,6 @@ THook(void, "?startServerThread@ServerInstance@@QEAAXXZ", void* a)
 	level = mc->getLevel();
 	original(a);
 }
-
 
 // FakePlayerHelper API
 FPHAPI vector<Player*> getFakePlayers()
