@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "mass.h"
 #include "logger.h"
 #include "config.h"
@@ -55,6 +55,8 @@ namespace FPHelper
 						// - [1] Name: FakePlayer_1(Summoner: Jasonzyt) Pos: Overworld(100, 64, 50)
 						// - [2] 假人名: FakePlayer_2(召唤者: Jasonzyt) 位置: 主世界(114, 51, 4)
 						// =======================================================================
+						PRINT<DEBUG, BLUE>(it->fp_ptr->getDimensionId(), 
+							Vec3ToString(it->fp_ptr->getPos()));
 						oss << format("- [%d] %s: %s(%s: %s) %s: %s%s)\n", i, LANG("listcmd.opt.fpname"),
 							it->name.c_str(), LANG("listcmd.opt.summoner"), it->summoner_name.c_str(), 
 							LANG("listcmd.opt.fppos"), LANG(getDimensionName(it->dim)), Vec3ToString(it->pos).c_str());
@@ -95,7 +97,8 @@ namespace FPHelper
 					}
 				}
 				auto res = fpws->add(new FakePlayer(name, fp_summoner, fp_summoner_xuid));
-				outp.success(to_string((int)res));
+				if (res.tp == FPWS::ErrorType::Success) outp.success(LANG("fpcmd.success"));
+				else outp.error(format(LANG("fpcmd.fail.format"), res.reason));
 			}
 			return true;
 		}
@@ -105,8 +108,16 @@ namespace FPHelper
 			if (type == OriginType::DedicatedServer || type == OriginType::Player)
 			{
 				for (auto& it : fpws->fp_list)
-					if (name == it->name)
-						fpws->remove(it);
+				{
+					if (it->name == name)
+					{
+						auto res = fpws->remove(it);
+						if (res.tp == FPWS::ErrorType::Success) outp.success(LANG("fpcmd.success"));
+						else outp.error(format(LANG("fpcmd.fail.format"), res.reason));
+						return true;
+					}
+				}
+				outp.error(format(LANG("fpcmd.fail.format"), LANG("fpcmd.cant_find_fp")));
 			}
 			return true;
 		}
@@ -132,19 +143,41 @@ namespace FPHelper
 				}
 				for (auto& it : fpws->fp_list)
 				{
-					if (it->name == name)
+					if (it->name.c_str() == name.c_str())
 					{
 						auto target = *(tg.results(ori).begin());
 						it->teleport(target->getPos(), (int)(target->getDimensionId()));
 						return true;
 					}
 				}
-				outp.error(LANG("fpcmd.cant_find_fp"));
+				outp.error(format(LANG("fpcmd.fail.format"), LANG("fpcmd.cant_find_fp")));
 			}
 			return true;
 		}
+#if defined(BDS_V1_16)
 		bool TeleportCmd_Pos(CommandOrigin const& ori, CommandOutput& outp, MyEnum<FPCMD_TP2>,
 			std::string name, CommandPositionFloat& pos, optional<MyEnum<FPCMD_Dimension>> dim)
+		{
+			auto type = ori.getOriginType();
+			if (type == OriginType::DedicatedServer || type == OriginType::Player)
+			{
+				for (auto& it : fpws->fp_list)
+				{
+					if (it->name.c_str() == it->name.c_str())
+					{
+						int exer_dim = 0;
+						if (type == OriginType::Player) exer_dim = ori.getEntity()->getDimensionId();
+						it->teleport(*(pos.getPosition(ori)), (dim.Set() ? (int)((FPCMD_Dimension)dim.val()) - 1 : exer_dim));
+						return true;
+					}
+				}
+				outp.error(format(LANG("fpcmd.fail.format"), LANG("fpcmd.cant_find_fp")));
+			}
+			return true;
+		}
+#elif defined(BDS_V1_17)
+		bool TeleportCmd_Pos(CommandOrigin const& ori, CommandOutput& outp, MyEnum<FPCMD_TP2>,
+			std::string name, float x, float y, float z, optional<MyEnum<FPCMD_Dimension>> dim)
 		{
 			auto type = ori.getOriginType();
 			if (type == OriginType::DedicatedServer || type == OriginType::Player)
@@ -155,14 +188,17 @@ namespace FPHelper
 					{
 						int exer_dim = 0;
 						if (type == OriginType::Player) exer_dim = ori.getEntity()->getDimensionId();
-						it->teleport(*(pos.getPosition(ori)), (dim.Set() ? (int)((FPCMD_Dimension)dim.val()) - 1 : exer_dim));
+						it->teleport(Vec3{ x,y,z } , (dim.Set() ? (int)((FPCMD_Dimension)dim.val()) - 1 : exer_dim));
 						return true;
 					}
 				}
-				outp.error(LANG("fpcmd.cant_find_fp"));
+				outp.error(format(LANG("fpcmd.fail.format"), LANG("fpcmd.cant_find_fp")));
 			}
 			return true;
 		}
+#else
+#error "BDS version is wrong"
+#endif
 	}
 
 	void dll_init()
@@ -194,7 +230,13 @@ namespace FPHelper
 			CmdOverload(fp, CMD::RemoveCmd, "remove", LANG("fpcmd.fpname"));
 			CmdOverload(fp, CMD::RemoveAllCmd, "remove_all");
 			CmdOverload(fp, CMD::TeleportCmd, "tp", LANG("fpcmd.fpname"), LANG("fpcmd.tp.selector"));
+#if defined(BDS_V1_16)
 			CmdOverload(fp, CMD::TeleportCmd_Pos, "tp", LANG("fpcmd.fpname"), LANG("fpcmd.tp.dst"), LANG("fpcmd.tp.dim"));
+#elif defined(BDS_V1_17)
+			CmdOverload(fp, CMD::TeleportCmd_Pos, "tp", LANG("fpcmd.fpname"), "x", "y", "z", LANG("fpcmd.tp.dim"));
+#else
+#error "BDS version is wrong"
+#endif
 		});
 		PRINT("Plugin started! Ver", FPH_VERSION, ' ', FPH_VERTYPE);
 		/*thread ad([]() {
@@ -283,6 +325,7 @@ THook(void, "?initAsDedicatedServer@Minecraft@@QEAAXXZ", Minecraft* _mc)
 THook(void, "?startServerThread@ServerInstance@@QEAAXXZ", void* a) 
 {
 	fpws->connect_ws();
+	PRINT(format(LANG("fpws.version.msg.format"),fpws->getVersion()));
 	level = mc->getLevel();
 	original(a);
 }

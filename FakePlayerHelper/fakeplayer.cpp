@@ -10,6 +10,7 @@ namespace FPHelper
 	{
 		FPHelper::teleport(fp_ptr, pos, dim);
 		auto pos_now = fp_ptr->getPos();
+		this->dim = dim;
 		this->pos = pos_now;
 		if (equal(pos_now, pos))
 		{
@@ -22,7 +23,7 @@ namespace FPHelper
 		ws = WebSocket::from_url(url);
 		if (this->ws)
 		{
-			this->status = Status::READY;
+			connected = true;
 			PRINT(LANG("fpws.connected"));
 			reconnect_num = 0;
 			process();
@@ -36,11 +37,22 @@ namespace FPHelper
 	{
 		for (auto& it : fp_list)
 			if (it->name == fp->name)
-				return FPWS::Error::Duplicate_Name;
+				return Error{ ErrorType::Duplicate_Name,LANG("fpws.duplicate.name") };
 		string id = getID();
-		WSPacket pkt{ id,PacketType::Add,fp };
+		WSPacket pkt{ id,PacketType::Add,fp,fp->name };
 		if (send(pkt))
-			return wait_response(id);
+		{
+			auto res = wait_response(id);
+			if (res.tp == ErrorType::Success)
+			{
+				auto data = pkts.at(id);
+				if (!data.second.success)
+					return Error{ ErrorType::Fail,data.second.reason };
+			}
+			pkts.erase(pkts.find(id));
+			return res;
+		}
+		return Error{ ErrorType::Send_Failed,LANG("fpws.failed.send") };
 	}
 	FPWS::Error FPWS::remove(FakePlayer* fp)
 	{
@@ -49,54 +61,135 @@ namespace FPHelper
 		if (send(pkt))
 		{
 			auto res = wait_response(id);
-			delete 
+			if (res.tp == ErrorType::Success)
+			{
+				auto data = pkts.at(id);
+				if (!data.second.success)
+					return Error{ ErrorType::Fail,data.second.reason };
+			}
+			pkts.erase(pkts.find(id));
 			return res;
 		}
-		return Error::Send_Failed;
+		return Error{ ErrorType::Send_Failed,LANG("fpws.failed.send") };
 	}
-	FPWS::Error FPWS::list()
+	FPWS::Error FPWS::remove_all(){}
+	FPWS::Error FPWS::list(vector<string>* list)
 	{
 		string id = getID();
-		WSPacket pkt{ id,PacketType::List };
+		WSPacket pkt{ id,PacketType::List,nullptr };
 		if (send(pkt))
 		{
-			if (wait_response(id) == Error::Success)
+			auto res = wait_response(id);
+			if (res.tp == ErrorType::Success)
 			{
-				pkts.erase(pkts.find(id));
+				auto data = pkts.at(id);
+				list = &data.second.list;
+			}
+			pkts.erase(pkts.find(id));
+			return res;
+		}
+		return Error{ ErrorType::Send_Failed,LANG("fpws.failed.send") };
+	}
+	FPWS::Error FPWS::refresh()
+	{
+		vector<string> fp_list;
+		if (list(&fp_list).tp == ErrorType::Success)
+		{
+			for (auto& it : fp_list)
+			{
+				string id = getID();
+				WSPacket pkt{ id,PacketType::GetState,nullptr,it };
+				if (send(pkt))
+				{
+					auto res = wait_response(id);
+					if (res.tp == ErrorType::Success)
+					{
+						auto data = pkts.at(id);
+						if (!data.second.success)
+							return Error{ ErrorType::Fail,data.second.reason };
+						if (data.second.stat == FPState::CONNECTED)
+						{
+							int flag = 0;
+							FakePlayer* fp = nullptr;
+							for (auto& it2 : this->fp_list)
+							{
+								if (it2->name == it)
+								{
+									fp = it2;
+									flag = 1;
+								}
+							}
+							if (!flag) fp = new FakePlayer(it, "[Unknown]", 0);
+							Player* fp_ptr = nullptr;
+							forEachPlayer([&](Player& pl) -> bool {
+								Player* pl_ptr = &pl;
+								if (pl_ptr->getNameTag() == it)
+								{
+									fp->fp_ptr = pl_ptr;
+									fp->online = true;
+									fp->dim = pl_ptr->getDimensionId();
+									fp->pos = pl_ptr->getPos();
+									if (!flag) fpws->fp_list.push_back(fp);
+								}
+							});
+						}
+						else if (data.second.stat != FPState::STOPPED && data.second.stat != FPState::STOPPING)
+							fpws->wait_list.push_back(new FakePlayer(it, "[Unknown]", 0));
+					}
+					pkts.erase(pkts.find(id));
+					return res;
+				}
 			}
 		}
 	}
+	string FPWS::getVersion()
+	{
+		string id = getID();
+		WSPacket pkt{ id,PacketType::GetVersion };
+		if (send(pkt))
+		{
+			if (wait_response(id).tp == ErrorType::Success)
+			{
+				auto data = pkts.at(id);
+				string version = data.second.version;
+				pkts.erase(pkts.find(id));
+				return version;
+			}
+			pkts.erase(pkts.find(id));
+		}
+		return "";
+	}
 	FPWS::Error FPWS::wait_response(string id)
 	{
-		if (status == Status::WAITING)
+		if (pkts.find(id) != pkts.end());
 		{
 			auto res = pool->enqueue([&]() {
-				while (1) // 20ms
+				while (20)
 				{
-					if (status == Status::PENDING && pkts.at(id).second) return;
+					if (pkts.at(id).second.set) return;
 					this_thread::sleep_for(chrono::milliseconds(5));
 				}
-			}).wait_for(chrono::milliseconds(20)); // 本机实际上5ms就够了
-			if (res == future_status::ready) return Error::Success;
+				return;
+			}).wait_for(chrono::milliseconds(110));
+			if (res == future_status::ready) return Error{ ErrorType::Success };
 			else
 			{
 				PRINT<WARN, YELLOW>(LANG("fpws.wait.timeout"));
 			}
-			return Error::TimeOut;
+			return Error{ ErrorType::TimeOut };
 		}
-		return Error::Not_Requested;
+		return Error{ ErrorType::Not_Requested };
 	}
 	bool FPWS::send(WSPacket pkt)
 	{
-		if (status != Status::READY) return false;
+		if (!connected) return false;
 		if (!ws || ws->getReadyState() == WebSocket::CLOSED) return false;
 		auto fp = pkt.target;
-		pkts.emplace(pair<std::string, pair<WSPacket*, Response*>>(pkt.id, { &pkt,nullptr }));
+		pkts.insert(make_pair(pkt.id, make_pair(pkt, Response())));
 		switch (pkt.pt)
 		{
 		case FPWS::PacketType::List:
 			ws->send(format("{\"id\":\"%s\",\"type\":\"list\"}", pkt.id));
-			status = Status::WAITING;
 			return true;
 			break;
 		case FPWS::PacketType::Add:
@@ -105,7 +198,6 @@ namespace FPHelper
 				string skin = cfg->skin;
 				if (skin == "random")
 				{
-					//srand(time(NULL));
 					bool i = rand() % 2;
 					skin = (i ? "steve" : "alex");
 				}
@@ -114,62 +206,53 @@ namespace FPHelper
 					PRINT<WARN, RED>("fpws.invalid.skin");
 					skin = "steve";
 				}
-				ws->send(format(R"({"id":"%s","type":"add","data":{"name":"%s","skin":"%s"}})", pkt.id, fp->name, skin));
+				ws->send(format(R"({"id":"%s","type":"add","data":{"name":"%s","skin":"%s"}})", pkt.id.c_str(), fp->name.c_str(), skin.c_str()));
 				wait_list.push_back(fp);
-				status = Status::WAITING;
 				return true;
 			}
 			break;
 		case FPWS::PacketType::Remove:
 			if (fp)
 			{
-				ws->send(format(R"({"id":"%s","type":"remove","data":{"name":"%s"}})", pkt.id, fp->name));
-				status = Status::WAITING;
+				ws->send(format(R"({"id":"%s","type":"remove","data":{"name":"%s"}})", pkt.id.c_str(), fp->name.c_str()));
 				return true;
 			}
 			break;
 		case FPWS::PacketType::Connect:
 			if (fp)
 			{
-				ws->send(format(R"({"id":"%s","type":"connect","data":{"name":"%s"}})", pkt.id, fp->name));
-				status = Status::WAITING;
+				ws->send(format(R"({"id":"%s","type":"connect","data":{"name":"%s"}})", pkt.id.c_str(), fp->name.c_str()));
 				return true;
 			}
 			break;
 		case FPWS::PacketType::Disconnect:
 			if (fp)
 			{
-				ws->send(format(R"({"id":"%s","type":"disconnect","data":{"name":"%s"}})", pkt.id, fp->name));
-				status = Status::WAITING;
+				ws->send(format(R"({"id":"%s","type":"disconnect","data":{"name":"%s"}})", pkt.id.c_str(), fp->name.c_str()));
 				return true;
 			}
 			break;
 		case FPWS::PacketType::GetState:
 			if (fp)
 			{
-				ws->send(format(R"({"id":"%s","type":"getState","data":{"name":"%s"}})", pkt.id, fp->name));
-				status = Status::WAITING;
+				ws->send(format(R"({"id":"%s","type":"getState","data":{"name":"%s"}})", pkt.id.c_str(), fp->name.c_str()));
 				return true;
 			}
 			break;
 		case FPWS::PacketType::Remove_All:
-			ws->send(format("{\"id\":\"%s\",\"type\":\"remove_all\"}", pkt.id));
-			status = Status::WAITING;
+			ws->send(format("{\"id\":\"%s\",\"type\":\"remove_all\"}", pkt.id.c_str()));
 			return true;
 		case FPWS::PacketType::Connect_All:
-			ws->send(format("{\"id\":\"%s\",\"type\":\"connect_all\"}", pkt.id));
-			status = Status::WAITING;
+			ws->send(format("{\"id\":\"%s\",\"type\":\"connect_all\"}", pkt.id.c_str()));
 			return true;
 		case FPWS::PacketType::Disconnect_All:
-			ws->send(format("{\"id\":\"%s\",\"type\":\"disconnect_all\"}", pkt.id));
-			status = Status::WAITING;
+			ws->send(format("{\"id\":\"%s\",\"type\":\"disconnect_all\"}", pkt.id.c_str()));
 			return true;
 		case FPWS::PacketType::GetVersion:
-			ws->send(format("{\"id\":\"%s\",\"type\":\"getVersion\"}", pkt.id));
-			status = Status::WAITING;
+			ws->send(format("{\"id\":\"%s\",\"type\":\"getVersion\"}", pkt.id.c_str()));
 			return true;
 		}
-		return 0;
+		return false;
 	}
 	FPWS::PacketType FPWS::parsePacketType(string tp)
 	{
@@ -190,10 +273,10 @@ namespace FPHelper
 		string res;
 		for (int i = 0; i < 20; i++)
 		{
-			string str = "01234567=89AB@CDEF=GHI&JKLMNO%PQRST%UVWX@YZabcde%fgnij&klmnopqrs#tuvwxyz";
+			string str = "0123456789AB@CDEFGHIJKLMNO%PQRST%UVWX@YZabcde%fgnijklmnopqrs#tuvwxyz";
 			// m<=r<=n
 			// rand()%(n-m+1)+m
-			int random_num = rand() % 73;
+			int random_num = rand() % 69;
 			res += str[random_num];
 		}
 		return res;
@@ -243,11 +326,11 @@ namespace FPHelper
 					default:
 						return;
 					}
+					resp.set = true;
 					resp.pt = pt;
 					resp.id = doc["id"].GetString();
-					auto it = pkts.find(resp.id); 
-					if (it != pkts.end()) it->second.second = &resp;
-					status = Status::PENDING;
+					auto it = pkts.find(resp.id);
+					if (it != pkts.end()) it->second.second = resp;
 				});
 			}
 			PRINT<WARN, YELLOW>(LANG("fpws.disconnected"));

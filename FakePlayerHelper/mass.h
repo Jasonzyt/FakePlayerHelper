@@ -102,8 +102,10 @@ namespace FPHelper
 	{
 #if defined(BDS_V1_16)
 		// 先改变维度
-		SymCall("?entityChangeDimension@Level@@QEAAXAEAVActor@@V?$AutomaticID@VDimension@@H@@@Z",
-			__int64, Level*, Actor*, uint32_t)(level, actor, dim);
+		/*SymCall("?entityChangeDimension@Level@@QEAAXAEAVActor@@V?$AutomaticID@VDimension@@H@@@Z",
+			__int64, Level*, Actor*, uint32_t)(level, actor, dim);*/
+		SymCall("?changeDimension@Actor@@UEAAXV?$AutomaticID@VDimension@@H@@_N@Z",
+			__int64, Actor*, uint32_t, const ActorUniqueID&)(actor, dim, actor->getUniqueID());
 		SymCall("?teleportTo@Actor@@UEAAXAEBVVec3@@_NHHAEBUActorUniqueID@@@Z",
 			void, Actor*, const Vec3*, const ActorUniqueID&)(actor, &dst, actor->getUniqueID());
 #elif defined(BDS_V1_17)

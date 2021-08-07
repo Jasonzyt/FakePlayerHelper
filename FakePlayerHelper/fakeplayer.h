@@ -16,14 +16,7 @@ namespace FPHelper
 	class FPWS
 	{
 	public:
-		enum class Status
-		{
-			NO_CONNECTION = 0,
-			READY = 1,
-			WAITING = 2,
-			PENDING = 3
-		};
-		enum class Error
+		enum class ErrorType
 		{
 			Success = 0,
 			Fail = 1,
@@ -35,6 +28,11 @@ namespace FPHelper
 			Resp_InvalidID = 7,
 			Send_Failed = 8,
 			Unknown = 9
+		};
+		struct Error
+		{
+			ErrorType tp;
+			std::string reason = "";
 		};
 		enum class PacketType
 		{
@@ -50,7 +48,8 @@ namespace FPHelper
 			Disconnect_All = 8,
 			GetVersion = 9
 		};
-		enum class FPState {
+		enum class FPState
+		{
 			CONNECTING,
 			CONNECTED,
 			DISCONNECTING,
@@ -64,9 +63,11 @@ namespace FPHelper
 			std::string id;
 			PacketType pt = PacketType::Unknown;
 			FakePlayer* target = nullptr;
+			std::string name;
 		};
 		struct Response
 		{
+			bool set = false;
 			std::string id, name, reason, version;
 			FPState stat;
 			bool success;
@@ -75,8 +76,8 @@ namespace FPHelper
 		};
 		WebSocket::pointer ws = nullptr;
 		ThreadPool* pool = nullptr;
-		Status status = Status::NO_CONNECTION;
-		std::unordered_map<std::string, std::pair<WSPacket*, Response*>> pkts;
+		bool connected = false;
+		std::unordered_map<std::string, std::pair<WSPacket, Response>> pkts;
 		std::vector<FakePlayer*> fp_list;
 		std::vector<FakePlayer*> wait_list;
 		int reconnect_num = 0;
@@ -89,12 +90,15 @@ namespace FPHelper
 		void connect_ws();
 		Error add(FakePlayer* fp);
 		Error remove(FakePlayer* fp);
-		Error list();
+		Error remove_all();
+		std::string getVersion();
+		Error list(std::vector<std::string>* list);
 		Error refresh();
 	private:
 		PacketType parsePacketType(std::string tp);
 		void process();
 		bool send(WSPacket pkt);
+		bool checkID(std::string id);
 		std::string getID();
 		Error wait_response(std::string id);
 	};
