@@ -133,6 +133,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>C:\Users\Administrator\Desktop\FakePlayerHelper\FakePlayerHelper\LLSDK_1.16;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <ExceptionHandling>Async</ExceptionHandling>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -157,6 +158,8 @@
     <ClInclude Include="myPacket.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="seh_excpetion.h" />
+    <ClInclude Include="TextPacket.h" />
     <ClInclude Include="threadpool.h" />
   </ItemGroup>
   <ItemGroup>

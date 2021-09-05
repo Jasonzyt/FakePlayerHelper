@@ -59,6 +59,12 @@
     <ClInclude Include="resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="seh_excpetion.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TextPacket.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="langpack.json">

@@ -59,7 +59,8 @@ namespace FPHelper
 							Vec3ToString(it->fp_ptr->getPos()));
 						oss << format("- [%d] %s: %s(%s: %s) %s: %s%s)\n", i, LANG("listcmd.opt.fpname"),
 							it->name.c_str(), LANG("listcmd.opt.summoner"), it->summoner_name.c_str(), 
-							LANG("listcmd.opt.fppos"), LANG(getDimensionName(it->dim)), Vec3ToString(it->pos).c_str());
+							LANG("listcmd.opt.fppos"), LANG(getDimensionName(it->fp_ptr->getDimensionId())), 
+							Vec3ToString(it->fp_ptr->getPos()).c_str());
 						i++;
 					}
 					oss << "=======================================================================" << endl;
@@ -97,8 +98,6 @@ namespace FPHelper
 					}
 				}
 				auto res = fpws->add(new FakePlayer(name, fp_summoner, fp_summoner_xuid));
-				if (res.tp == FPWS::ErrorType::Success) outp.success(LANG("fpcmd.success"));
-				else outp.error(format(LANG("fpcmd.fail.format"), res.reason));
 			}
 			return true;
 		}
@@ -112,8 +111,6 @@ namespace FPHelper
 					if (it->name == name)
 					{
 						auto res = fpws->remove(it);
-						if (res.tp == FPWS::ErrorType::Success) outp.success(LANG("fpcmd.success"));
-						else outp.error(format(LANG("fpcmd.fail.format"), res.reason));
 						return true;
 					}
 				}
@@ -154,9 +151,10 @@ namespace FPHelper
 			}
 			return true;
 		}
+
 #if defined(BDS_V1_16)
 		bool TeleportCmd_Pos(CommandOrigin const& ori, CommandOutput& outp, MyEnum<FPCMD_TP2>,
-			std::string name, CommandPositionFloat& pos, optional<MyEnum<FPCMD_Dimension>> dim)
+			std::string name, CommandPositionFloat& pos)
 		{
 			auto type = ori.getOriginType();
 			if (type == OriginType::DedicatedServer || type == OriginType::Player)
@@ -167,7 +165,7 @@ namespace FPHelper
 					{
 						int exer_dim = 0;
 						if (type == OriginType::Player) exer_dim = ori.getEntity()->getDimensionId();
-						it->teleport(*(pos.getPosition(ori)), (dim.Set() ? (int)((FPCMD_Dimension)dim.val()) - 1 : exer_dim));
+						it->teleport(*(pos.getPosition(ori)), 0);
 						return true;
 					}
 				}
@@ -204,6 +202,7 @@ namespace FPHelper
 	void dll_init()
 	{
 		PRINT("FakePlayerHelper loaded! Author: Jasonzyt");
+		_set_se_translator(seh_excpetion::TranslateSEHtoCE);
 		if (!fs::exists(FPH_FOLDER)) fs::create_directories(FPH_FOLDER);
 		try {
 			cfg->init();
@@ -229,37 +228,31 @@ namespace FPHelper
 			CmdOverload(fp, CMD::AddCmd, "add", LANG("fpcmd.fpname"));
 			CmdOverload(fp, CMD::RemoveCmd, "remove", LANG("fpcmd.fpname"));
 			CmdOverload(fp, CMD::RemoveAllCmd, "remove_all");
-			CmdOverload(fp, CMD::TeleportCmd, "tp", LANG("fpcmd.fpname"), LANG("fpcmd.tp.selector"));
+			if (cfg->allow_tp)
+			{
+				CmdOverload(fp, CMD::TeleportCmd, "tp", LANG("fpcmd.fpname"), LANG("fpcmd.tp.selector"));
 #if defined(BDS_V1_16)
-			CmdOverload(fp, CMD::TeleportCmd_Pos, "tp", LANG("fpcmd.fpname"), LANG("fpcmd.tp.dst"), LANG("fpcmd.tp.dim"));
+				CmdOverload(fp, CMD::TeleportCmd_Pos, "tp", LANG("fpcmd.fpname"), LANG("fpcmd.tp.dst"));
 #elif defined(BDS_V1_17)
-			CmdOverload(fp, CMD::TeleportCmd_Pos, "tp", LANG("fpcmd.fpname"), "x", "y", "z", LANG("fpcmd.tp.dim"));
+				CmdOverload(fp, CMD::TeleportCmd_Pos, "tp", LANG("fpcmd.fpname"), "x", "y", "z", LANG("fpcmd.tp.dim"));
 #else
 #error "BDS version is wrong"
 #endif
+			}
 		});
 		PRINT("Plugin started! Ver", FPH_VERSION, ' ', FPH_VERTYPE);
-		/*thread ad([]() {
-			while (true)
-			{
-				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), DK_CYAN);
-				cout << "[FPH][AD] " << endl;
-				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
-				this_thread::sleep_for(chrono::seconds(120));
-			}
-		});*/
 	}
 }
 using namespace FPHelper;
 FPHAPI bool IsFakePlayer(Player* pl);
-THook(VA, "??0?$SPSCQueue@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@$0CAA@@@QEAA@_K@Z", VA _this)
+THook(VA, "??0?$SPSCQueue@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@$0CAA@@@QEAA@_K@Z", VA thiz)
 {
-	p_spscqueue = original(_this);
+	p_spscqueue = original(thiz);
 	return p_spscqueue;
 }
 THook(void, "?sendLoginMessageLocal@ServerNetworkHandler@@QEAAXAEBVNetworkIdentifier@@"
 	"AEBVConnectionRequest@@AEAVServerPlayer@@@Z",
-	void* ServerNetworkHandler_this, NetworkIdentifier* Ni, void* ConnectionRequest, ServerPlayer* sp)
+	void* thiz, NetworkIdentifier* Ni, void* ConnectionRequest, ServerPlayer* sp)
 {
 	auto pl = (Player*)sp;
 	auto pname = pl->getNameTag();
@@ -270,20 +263,20 @@ THook(void, "?sendLoginMessageLocal@ServerNetworkHandler@@QEAAXAEBVNetworkIdenti
 		{
 			fp->fp_ptr = pl;
 			fp->online = true;
-			fp->dim = pl->getDimensionId();
-			fp->pos = pl->getPos();
 			fpws->wait_list.pop_back();
 			fpws->fp_list.push_back(fp);
-			auto info = format(LANG("fp.join.info.format"), fp->name.c_str(),
-				LANG(getDimensionName(fp->dim)), Vec3ToString(fp->pos).c_str());
-			PRINT(info);
-			sendTextAll(info, TextType::RAW);
+			auto cinfo = localization("console.join.info.format", fp->name.c_str(), 
+				LANG(getDimensionName(fp->fp_ptr->getDimensionId())), Vec3ToString(fp->fp_ptr->getPos()).c_str());
+			auto ginfo = localization("gamemsg.join.info.format", fp->name.c_str(), 
+				LANG(getDimensionName(fp->fp_ptr->getDimensionId())), Vec3ToString(fp->fp_ptr->getPos()).c_str());
+			PRINT(cinfo);
+			sendMessageAll(ginfo);
 		}
 	}
-	return original(ServerNetworkHandler_this, Ni, ConnectionRequest, sp);
+	return original(thiz, Ni, ConnectionRequest, sp);
 }
 THook(void, "?_onPlayerLeft@ServerNetworkHandler@@AEAAXPEAVServerPlayer@@_N@Z",
-	ServerNetworkHandler* _this, ServerPlayer* sp, bool a3)
+	ServerNetworkHandler* thiz, ServerPlayer* sp, bool a3)
 {
 	auto pl = (Player*)sp;
 	for (auto it = fpws->fp_list.begin();
@@ -293,12 +286,14 @@ THook(void, "?_onPlayerLeft@ServerNetworkHandler@@AEAAXPEAVServerPlayer@@_N@Z",
 		if ((*it)->name == pl->getNameTag())
 		{
 			fpws->fp_list.erase(it);
-			auto info = format(LANG("fp.left.info.format"), fp->name.c_str(), 
-				LANG(getDimensionName(fp->dim)), Vec3ToString(fp->pos).c_str());
+			auto cinfo = localization("console.left.info.format", fp->name.c_str(), 
+				LANG(getDimensionName(fp->fp_ptr->getDimensionId())), Vec3ToString(fp->fp_ptr->getPos()).c_str());
+			auto ginfo = localization("gamemsg.left.info.format", fp->name.c_str(),  
+				LANG(getDimensionName(fp->fp_ptr->getDimensionId())), Vec3ToString(fp->fp_ptr->getPos()).c_str());
 			delete fp;
-			PRINT(info);
-			sendTextAll(info, TextType::RAW);
-			return original(_this, sp, a3);
+			PRINT(cinfo);
+			sendMessageAll(ginfo);
+			return original(thiz, sp, a3);
 		}
 	}
 	if (cfg->kick_fp)
@@ -309,25 +304,29 @@ THook(void, "?_onPlayerLeft@ServerNetworkHandler@@AEAAXPEAVServerPlayer@@_N@Z",
 			if (getXuid(pl) == (*it)->summoner_xuid)
 			{
 				fpws->remove((*it));
-				auto info = format(LANG("fp.summoner.left.kick"), (*it)->name.c_str());
+				auto info = format(LANG("gamemsg.summoner.left.kick"), (*it)->name.c_str());
 				PRINT(info);
-				sendTextAll(info, TextType::RAW);
+				sendMessageAll(info);
 			}
 		}
 	}
-	return original(_this, sp, a3);
+	return original(thiz, sp, a3);
 }
-THook(void, "?initAsDedicatedServer@Minecraft@@QEAAXXZ", Minecraft* _mc) 
+THook(void, "?tick@ServerLevel@@UEAAXXZ", ServerLevel* thiz) 
 {
-	mc = _mc;
+	if (fpws) fpws->tick();
+	original(thiz);
+}
+THook(void, "?initAsDedicatedServer@Minecraft@@QEAAXXZ", Minecraft* thiz) 
+{
+	mc = thiz;
 	original(mc);
 }
-THook(void, "?startServerThread@ServerInstance@@QEAAXXZ", void* a) 
+THook(void, "?startServerThread@ServerInstance@@QEAAXXZ", void* thiz) 
 {
+	original(thiz);
 	fpws->connect_ws();
-	PRINT(format(LANG("fpws.version.msg.format"),fpws->getVersion()));
 	level = mc->getLevel();
-	original(a);
 }
 
 // FakePlayerHelper API

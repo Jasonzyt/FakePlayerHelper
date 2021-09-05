@@ -1,13 +1,15 @@
-﻿#ifndef MASS_H
+#ifndef MASS_H
 #define MASS_H
 #include "pch.h"
 #include "myPacket.h"
 #include "logger.h"
+#include "langpack.h"
 #include <mc/Player.h>
 #include <mc/Level.h>
 #include <mc/Certificate.h>
 #include <api/types/types.h>
 #include <loader/loader.h>
+#include "TextPacket.h"
 
 namespace FPHelper
 {
@@ -41,24 +43,47 @@ namespace FPHelper
 		});
 		return player_list;
 	}
+	inline Player* getPlayerByNameTag(const std::string& name) {
+		forEachPlayer([&](Player& pl) -> bool {
+			Player* player = &pl;
+			if (do_hash(player->getNameTag()) == do_hash(name))
+				return player;
+		});
+		return nullptr;
+	}
+#if 0
 	inline void sendText(Player* pl, const std::string& text, TextType tp)
 	{
-		Packet* pkt;
+		PRINT<DEBUG, BLUE>("called! text=", text);
+		/*Packet* pkt;
 		SymCall(
 			"?createPacket@MinecraftPackets@@SA?AV?$shared_ptr@VPacket@@@std@@W4MinecraftPacketIds@@@Z",
 			void*, Packet**, int)(&pkt, 9);  //创建包
 #if defined(BDS_V1_16)
+		std::string src = "Server";
+		std::string msg = text;
 		dAccess<char, 40>(pkt) = (char)tp;
-		dAccess<std::string, 48>(pkt) = "Server";
-		dAccess<std::string, 80>(pkt) = text;
+		dAccess<std::string*, 48>(pkt) = &src;
+		dAccess<std::string*, 80>(pkt) = &msg;
 #elif defined(BDS_V1_17)
-#else
 		dAccess<char, 48>(pkt) = (char)tp;
 		dAccess<string, 56>(pkt) = "Server";
 		// dAccess<string, 48>(pkt) = this->getName();
 		dAccess<string, 88>(pkt) = text;
+#else
 #error "BDS version is wrong"
 #endif
+		pl->sendNetworkPacket(*pkt);*/
+		TextPacket* pkt;
+		SymCall(
+			"?createPacket@MinecraftPackets@@SA?AV?$shared_ptr@VPacket@@@std@@W4MinecraftPacketIds@@@Z",
+			void*, Packet**, int)((Packet**)&pkt, 9);  //创建包
+		std::string src = "Server";
+		std::string msg = text;
+		pkt->needsTrans = false;
+		pkt->type = (TextType)0;
+		pkt->sourceName = &src;
+		pkt->msg = &msg;
 		pl->sendNetworkPacket(*pkt);
 	}
 	inline void sendTextAll(const std::string& text, TextType tp)
@@ -67,6 +92,27 @@ namespace FPHelper
 			Player* player = &pl;
 			if (!player) return false;
 			//sendText(player, text, tp);
+			return true;
+		});
+	}
+#endif
+	inline void sendMessage(Actor* pl, const std::string& msg)
+	{
+		PRINT<DEBUG, BLUE>("called! msg=", msg, " pl=", pl);
+		std::vector<std::string> vec;
+		vec.push_back("23333"); // 必须要有至少一个元素
+		SymCall("?displayLocalizableMessage@CommandUtils@@YAX_NAEAVPlayer@@AEBV?$basic_string"
+			"@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AEBV?$vector@V?$basic_string@DU?$"
+			"char_traits@D@std@@V?$allocator@D@2@@std@@V?$allocator@V?$basic_string@DU?$char_"
+			"traits@D@std@@V?$allocator@D@2@@std@@@2@@4@@Z", void, bool, Actor*, const std::string&,
+			std::vector<std::string>&)(true, pl, msg, vec);
+	}
+	inline void sendMessageAll(const std::string& msg)
+	{
+		forEachPlayer([&](Player& pl) -> bool {
+			Player* player = &pl;
+			if (!player) return false;
+			sendMessage(player, msg);
 			return true;
 		});
 	}
@@ -101,13 +147,18 @@ namespace FPHelper
 	inline void teleport(Actor* actor, Vec3 dst, int dim)
 	{
 #if defined(BDS_V1_16)
-		// 先改变维度
 		/*SymCall("?entityChangeDimension@Level@@QEAAXAEAVActor@@V?$AutomaticID@VDimension@@H@@@Z",
 			__int64, Level*, Actor*, uint32_t)(level, actor, dim);*/
-		SymCall("?changeDimension@Actor@@UEAAXV?$AutomaticID@VDimension@@H@@_N@Z",
-			__int64, Actor*, uint32_t, const ActorUniqueID&)(actor, dim, actor->getUniqueID());
-		SymCall("?teleportTo@Actor@@UEAAXAEBVVec3@@_NHHAEBUActorUniqueID@@@Z",
-			void, Actor*, const Vec3*, const ActorUniqueID&)(actor, &dst, actor->getUniqueID());
+		try {
+			//SymCall("?changeDimension@Actor@@UEAAXV?$AutomaticID@VDimension@@H@@_N@Z",
+				//__int64, Actor*, uint32_t, const ActorUniqueID&)(actor, dim, actor->getUniqueID());
+			SymCall("?teleportTo@Actor@@UEAAXAEBVVec3@@_NHHAEBUActorUniqueID@@@Z",
+				void, Actor*, const Vec3*, const ActorUniqueID&)(actor, &dst, actor->getUniqueID());
+		}
+		catch(const seh_excpetion& e) 
+		{
+			PRINT<ERROR, RED>("SEH Exception: [", e.code(), ']', e.what());
+		}
 #elif defined(BDS_V1_17)
 		char mem[128];
 		SymCall(
@@ -123,8 +174,9 @@ namespace FPHelper
 	}
 
 	template<typename ... Args>
-	inline std::string format(const std::string& format, Args ... args) {
-		int size = snprintf(nullptr, 0, format.c_str(), args ...) + 1;
+	inline std::string format(const std::string& format, Args... args)
+	{
+		int size = snprintf(nullptr, 0, format.c_str(), args...) + 1;
 		if (size <= 0)
 			return "";
 		std::unique_ptr<char[]> buf(new char[size]);
@@ -157,6 +209,11 @@ namespace FPHelper
 	inline std::string Vec3ToString(const Vec3& pos)
 	{
 		return format("(%.2lf, %.2lf, %.2lf)", pos.x, pos.y, pos.z);
+	}
+	template<typename ... Args>
+	inline std::string localization(const std::string& key, Args... args) 
+	{
+		return format(LANG(key), std::forward<Args>(args)...);
 	}
 }
 

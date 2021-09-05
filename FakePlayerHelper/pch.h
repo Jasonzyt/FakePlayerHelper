@@ -1,6 +1,6 @@
-﻿#ifndef PCH_H
+#ifndef PCH_H
 #define PCH_H
-#define WIN32_LEAN_AND_MEAN
+//#define WIN32_LEAN_AND_MEAN
 // Windows 头文件
 #include <windows.h>
 // C++ 标准库
@@ -21,6 +21,7 @@
 #include <ctime>
 // LiteLoader
 #include <liteloader.h>
+#include "seh_excpetion.h"
 
 #define FETCH(tp, ptr) (*reinterpret_cast<tp*>(ptr))
 #define PRINT coutp.p
