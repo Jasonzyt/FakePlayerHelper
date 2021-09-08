@@ -44,12 +44,15 @@ namespace FPHelper
 		return player_list;
 	}
 	inline Player* getPlayerByNameTag(const std::string& name) {
+		Player* player = nullptr;
 		forEachPlayer([&](Player& pl) -> bool {
-			Player* player = &pl;
-			if (do_hash(player->getNameTag()) == do_hash(name))
-				return player;
+			if (do_hash((&pl)->getNameTag()) == do_hash(name))
+			{
+				player = &pl;
+				return false;
+			}
 		});
-		return nullptr;
+		return player;
 	}
 #if 0
 	inline void sendText(Player* pl, const std::string& text, TextType tp)
@@ -213,7 +216,7 @@ namespace FPHelper
 	template<typename ... Args>
 	inline std::string localization(const std::string& key, Args... args) 
 	{
-		return format(LANG(key), std::forward<Args>(args)...);
+		return format(LANG(key), args...);
 	}
 }
 

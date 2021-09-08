@@ -2,6 +2,8 @@
 #include "langpack.h"
 #include "mass.h"
 #define H do_hash
+#define FIND(x,v) find(x.begin(),x.end(),v)
+#define EXISTS(x,val) (FIND(x,val) != x.end())
 
 using namespace std;
 
@@ -28,6 +30,7 @@ namespace FPHelper
 			PRINT(LANG("fpws.connected"));
 			sendMessageAll(LANG("gamemsg.ws.connected"));
 			process();
+			getVersion();
 		}
 		else
 		{
@@ -39,7 +42,10 @@ namespace FPHelper
 	{
 		lock_guard<mutex> a(mtx);
 		if (sync_timer >= 100)
+		{
 			getStates();
+			sync_timer = 0;
+		}
 		else sync_timer++;
 		for (auto& it : timer) 
 		{
@@ -53,43 +59,29 @@ namespace FPHelper
 					case FPHelper::FPWS::PacketType::List:
 						break;
 					case FPHelper::FPWS::PacketType::Add:
-						if (resp.success)
-						{
-
-						}
-						else 
-						{
-
-						}
-						break;
-					case FPHelper::FPWS::PacketType::Remove:
-						if (resp.success)
-						{
-
-						}
-						else
-						{
-
-						}
-						break;
 					case FPHelper::FPWS::PacketType::Connect:
 						if (resp.success)
 						{
-
+							PRINT(localization("console.successfully.add.fakeplayer"));
+							sendMessageAll(localization("gamemsg.successfully.add.fakeplayer"));
 						}
 						else
 						{
-
+							PRINT<ERROR, RED>(localization("console.failed.add.fakeplayer.format", resp.reason.c_str()));
+							sendMessageAll(localization("gamemsg.failed.add.fakeplayer.format", resp.reason.c_str()));
 						}
 						break;
+					case FPHelper::FPWS::PacketType::Remove:
 					case FPHelper::FPWS::PacketType::Disconnect:
 						if (resp.success)
 						{
-
+							PRINT(localization("console.successfully.remove.fakeplayer"));
+							sendMessageAll(localization("gamemsg.successfully.remove.fakeplayer"));
 						}
 						else
 						{
-
+							PRINT<ERROR, RED>(localization("console.failed.remove.fakeplayer.format", resp.reason.c_str()));
+							sendMessageAll(localization("gamemsg.failed.remove.fakeplayer.format", resp.reason.c_str()));
 						}
 						break;
 					case FPHelper::FPWS::PacketType::GetState:
@@ -101,15 +93,29 @@ namespace FPHelper
 					case FPHelper::FPWS::PacketType::Disconnect_All:
 						break;
 					case FPHelper::FPWS::PacketType::GetVersion:
-						PRINT(localization("fpws.version.msg.format", resp.version));
-						sendMessageAll(localization("gamemsg.ws.fp.version", resp.version));
+						PRINT(localization("fpws.version.msg.format", resp.version.c_str()));
+						sendMessageAll(localization("gamemsg.ws.fp.version", resp.version.c_str()));
 						break;
 					case FPHelper::FPWS::PacketType::GetState_All:
-						for (auto& it : resp.players) 
+						for (auto& it : resp.players)
 						{
 							if (it.state == FPState::CONNECTED)
 							{
-								if (IsFakePlayer(it.name)) {}
+								if (!IsFakePlayer(it.name))
+								{
+									auto pl = getPlayerByNameTag(it.name);
+									if (pl)
+									{
+										fp_list.push_back(new FakePlayer(pl));
+										PRINT(localization("console.found.new.fakeplayer.format", it.name));
+										sendMessageAll(localization("gamemsg.found.new.fakeplayer.format", it.name));
+									}
+								}
+							}
+							else if (it.state == FPState::CONNECTING || it.state == FPState::RECONNECTING) {}
+							else
+							{
+								if (IsFakePlayer(it.name) && !getPlayerByNameTag(it.name)) deleteFakePlayer(it.name);
 							}
 						}
 						break;
@@ -120,7 +126,9 @@ namespace FPHelper
 						break;
 					}
 				}
+				it.second = -2;
 			}
+			else if (it.second == -2) continue;
 			else if (it.second >= 50)
 			{
 				PRINT<ERROR, RED>("fpws.wait.timeout");
@@ -161,37 +169,67 @@ namespace FPHelper
 		string res;
 		for (int i = 0; i < 20; i++)
 		{
-			string str = "0123456789AB@CDEFGHIJKLMNO%PQRST%UVWX@YZabcde%fgnijklmnopqrs#tuvwxyz";
+			string str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefgnijklmnopqrstuvwxyz";
 			// m<=r<=n
 			// rand()%(n-m+1)+m
-			int random_num = rand() % 69;
+			int random_num = rand() % 63;
 			res += str[random_num];
 		}
 		return res;
 	}
 
 #pragma region Event
-	void FPWS::onAdd(FPWS::Message msg) {}
+	void FPWS::onAdd(Message msg) {}
 
-	void FPWS::onRemove(FPWS::Message msg) {}
+	void FPWS::onRemove(Message msg)
+	{
+		auto it = all_fp.begin();
+		for (; it != all_fp.end(); it++)
+		{
+			if (*it == msg.name)
+			{
+				all_fp.erase(it);
+				break;
+			}
+		}
+	}
 
-	void FPWS::onConnect(FPWS::Message msg) {}
+	void FPWS::onConnect(Message msg) 
+	{
+		PRINT("called");
+		if (!IsFakePlayer(msg.name))
+		{
+			auto pl = getPlayerByNameTag(msg.name);
+			if (pl)
+			{
+				fp_list.push_back(new FakePlayer(pl));
+				PRINT(localization("console.found.new.fakeplayer.format", msg.name));
+				sendMessageAll(localization("gamemsg.found.new.fakeplayer.format", msg.name));
+			}
+		}
+	}
 
-	void FPWS::onDisconnect(FPWS::Message msg) {}
+	void FPWS::onDisconnect(Message msg) {}
 #pragma endregion
 
 #pragma region SendWebsocketMessage
 	bool FPWS::add(FakePlayer* fp)
 	{
 		string id = getID();
-		WSPacket pkt{ id,PacketType::Add,fp,fp->name,fp->allowChatControl };
+		WSPacket pkt;
+		if (EXISTS(all_fp, fp->name))
+		{
+			WSPacket pkt{ id,PacketType::Connect,fp,fp->name };
+			return send(pkt);
+		}
+		pkt = WSPacket{ id,PacketType::Add,fp,fp->name,fp->allowChatControl };
 		return send(pkt);
 	}
 
 	bool FPWS::remove(FakePlayer* fp)
 	{
 		string id = getID();
-		WSPacket pkt{ id,PacketType::Remove,fp };
+		WSPacket pkt{ id,PacketType::Disconnect,fp };
 		return send(pkt);
 	}
 
@@ -260,6 +298,7 @@ namespace FPHelper
 			if (fp)
 			{
 				ws->send(format(R"({"id":"%s","type":"connect","data":{"name":"%s"}})", pkt.id.c_str(), fp->name.c_str()));
+				wait_list.push_back(fp);
 				return true;
 			}
 			break;
@@ -303,6 +342,7 @@ namespace FPHelper
 		return false;
 	}
 #pragma endregion
+
 #pragma region Other
 	bool FPWS::IsFakePlayer(Player* pl)
 	{
@@ -323,7 +363,20 @@ namespace FPHelper
 		}
 		return false;
 	}
+	bool FPWS::deleteFakePlayer(const string& name)
+	{
+		auto it = fp_list.begin();
+		for (; it != fp_list.end(); it++)
+			if (do_hash(name) == do_hash((*it)->fp_ptr->getNameTag()))
+			{
+				fp_list.erase(it);
+				return true;
+			}
+		return false;
+	}
+
 #pragma endregion
+
 #pragma region Parse
 	FPWS::PacketType FPWS::parsePacketType(const string& tp)
 	{
@@ -395,15 +448,18 @@ namespace FPHelper
 				break;
 			case PacketType::GetState_All:
 				msg.success = true;
-				for (auto it = doc["data"]["players"].MemberBegin(); it != doc["data"]["players"].MemberEnd(); it++) 
+				all_fp.clear();
+				for (auto it = doc["data"]["playersData"].MemberBegin(); it != doc["data"]["playersData"].MemberEnd(); it++) 
 				{
+					auto name = it->name.GetString();
 					msg.players.push_back(
 						PlayerData{ 
-							it->name.GetString(),
+							name,
 							(FPState)it->value["state"].GetInt(),
 							it->value["allowChatControl"].GetBool()
 						}
 					);
+					all_fp.push_back(name);
 				}
 				break;
 			case PacketType::SetChatControl:
@@ -417,6 +473,7 @@ namespace FPHelper
 			msg.set = true;
 			msg.pt = pt;
 			msg.id = doc["id"].GetString();
+			return msg;
 		}
 		else if (doc.HasMember("event"))
 		{

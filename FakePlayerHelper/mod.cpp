@@ -27,9 +27,10 @@ namespace FPHelper
 		enum class FPCMD_List { List = 1 };
 		enum class FPCMD_Add { Add = 1 };
 		enum class FPCMD_Remove { Remove = 1 };
+		enum class FPCMD_Connect { Connect = 1 };
 		enum class FPCMD_TP1 { TP = 1 };
 		enum class FPCMD_TP2 { TP = 1 };
-		enum class FPCMD_Remove_All { Remove = 1 };
+		enum class FPCMD_Remove_All { Remove_All = 1 };
 
 		enum class FPCMD_Dimension : int
 		{
@@ -38,6 +39,20 @@ namespace FPHelper
 			The_End = 3
 		};
 
+		bool ConnectCmd(CommandOrigin const& ori, CommandOutput& outp, MyEnum<FPCMD_Connect>)
+		{
+			auto type = ori.getOriginType();
+			if (type == OriginType::DedicatedServer || type == OriginType::Player)
+			{
+				if (fpws)
+				{
+					if (!fpws->connected) fpws->connect_ws();
+					else outp.error(localization("fpws.already.connected"));
+				}
+				else outp.error("NullPointerException");
+			}
+			return true;
+		}
 		bool ListCmd(CommandOrigin const& ori, CommandOutput& outp, MyEnum<FPCMD_List>)
 		{
 			auto type = ori.getOriginType();
@@ -97,7 +112,7 @@ namespace FPHelper
 						return true;
 					}
 				}
-				auto res = fpws->add(new FakePlayer(name, fp_summoner, fp_summoner_xuid));
+				auto res = fpws->add(new FakePlayer(name, fp_summoner, fp_summoner_xuid, true));
 			}
 			return true;
 		}
@@ -108,7 +123,7 @@ namespace FPHelper
 			{
 				for (auto& it : fpws->fp_list)
 				{
-					if (it->name == name)
+					if (do_hash(it->name) == do_hash(name))
 					{
 						auto res = fpws->remove(it);
 						return true;
@@ -224,6 +239,8 @@ namespace FPHelper
 			CEnum<CMD::FPCMD_TP1> _cenum5("tp", { "tp" });
 			CEnum<CMD::FPCMD_TP2> _cenum6("tp", { "tp" });
 			CEnum<CMD::FPCMD_Dimension> _cenum7("dimen", { "overworld","nether","end" });
+			CEnum<CMD::FPCMD_Connect> _cenum8("connect", { "connect" });
+			CmdOverload(fp, CMD::ConnectCmd, "connect");
 			CmdOverload(fp, CMD::ListCmd, "list");
 			CmdOverload(fp, CMD::AddCmd, "add", LANG("fpcmd.fpname"));
 			CmdOverload(fp, CMD::RemoveCmd, "remove", LANG("fpcmd.fpname"));
@@ -325,8 +342,9 @@ THook(void, "?initAsDedicatedServer@Minecraft@@QEAAXXZ", Minecraft* thiz)
 THook(void, "?startServerThread@ServerInstance@@QEAAXXZ", void* thiz) 
 {
 	original(thiz);
-	fpws->connect_ws();
 	level = mc->getLevel();
+
+	fpws->connect_ws();
 }
 
 // FakePlayerHelper API

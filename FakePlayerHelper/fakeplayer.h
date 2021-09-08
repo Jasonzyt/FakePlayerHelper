@@ -80,6 +80,7 @@ namespace FPHelper
 		bool connected = false;
 		std::unordered_map<std::string, int> timer;
 		std::unordered_map<std::string, Message> resps;
+		std::vector<std::string> all_fp;
 		std::vector<FakePlayer*> fp_list;
 		std::vector<FakePlayer*> wait_list;
 		int sync_timer = 0;
@@ -104,6 +105,7 @@ namespace FPHelper
 		void onDisconnect(Message msg);
 		static bool IsFakePlayer(Player* pl);
 		static bool IsFakePlayer(const std::string& pl);
+		bool deleteFakePlayer(const std::string& name);
 		const Message parseMessage(const std::string& msg);
 	private:
 		static PacketType parsePacketType(const std::string& tp);
@@ -124,8 +126,9 @@ namespace FPHelper
 		bool allowChatControl = false;
 		FakePlayer(Player* pl) : fp_ptr(pl), summoner_name("Unknown"), online(true) {}
 		FakePlayer(const std::string& fp_name, const std::string& fp_summoner_name, 
-			xuid_t fp_summoner_xuid, bool allowChatControl = false)
-			: name(fp_name), summoner_name(fp_summoner_name), summoner_xuid(fp_summoner_xuid) {}
+			xuid_t fp_summoner_xuid, bool allowChatControl = true)
+			: name(fp_name), summoner_name(fp_summoner_name), summoner_xuid(fp_summoner_xuid),
+			allowChatControl(allowChatControl) {}
 		void teleport(const Vec3& pos, int dim);
 	};
 }
