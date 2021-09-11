@@ -1,0 +1,27 @@
+name: Build FakePlayerHelper
+
+on: [push,pull_request]
+
+env:
+  SOLUTION_FILE_PATH: ./FakePlayerHelper.sln
+  BUILD_CONFIGURATION: Release
+  Platform: X64
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.2
+
+    - name: Build
+      run: msbuild  ${{env.SOLUTION_FILE_PATH}} /p:Configuration=${{env.BUILD_CONFIGURATION}}
+    
+    - name: Upload
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: FakePlayerHelper
+        path: ./x64/Release/
