@@ -31,6 +31,7 @@ namespace FPHelper
 			sendMessageAll(LANG("gamemsg.ws.connected"));
 			process();
 			getVersion();
+			fpws->sync_timer = 100;
 		}
 		else
 		{
@@ -196,16 +197,11 @@ namespace FPHelper
 
 	void FPWS::onConnect(Message msg) 
 	{
-		PRINT("called");
-		if (!IsFakePlayer(msg.name))
+		if (!IsFakePlayer(msg.name) && !IsInWaitList(msg.name))
 		{
-			auto pl = getPlayerByNameTag(msg.name);
-			if (pl)
-			{
-				fp_list.push_back(new FakePlayer(pl));
-				PRINT(localization("console.found.new.fakeplayer.format", msg.name));
-				sendMessageAll(localization("gamemsg.found.new.fakeplayer.format", msg.name));
-			}
+			wait_list.push_back(new FakePlayer(msg.name, "[Unknown]", 0));
+			PRINT(localization("console.found.new.fakeplayer.format", msg.name));
+			sendMessageAll(localization("gamemsg.found.new.fakeplayer.format", msg.name));
 		}
 	}
 
@@ -344,23 +340,23 @@ namespace FPHelper
 #pragma endregion
 
 #pragma region Other
+	bool FPWS::IsInWaitList(const string& pl)
+	{
+		for (auto& it : wait_list)
+			if (it->name == pl) return true;
+		return false;
+	}
 	bool FPWS::IsFakePlayer(Player* pl)
 	{
-		if (fpws)
-		{
-			for (auto& it : fpws->fp_list)
-				if (pl == it->fp_ptr) return true;
-		}
+		for (auto& it : fp_list)
+			if (pl == it->fp_ptr) return true;
 		return false;
 	}
 	bool FPWS::IsFakePlayer(const string& pl)
 	{
-		if (fpws)
-		{
-			for (auto& it : fpws->fp_list)
-				if (do_hash(pl) == do_hash(it->fp_ptr->getNameTag()))
-					return true;
-		}
+		for (auto& it : fp_list)
+			if (it->fp_ptr && pl == it->fp_ptr->getNameTag())
+				return true;
 		return false;
 	}
 	bool FPWS::deleteFakePlayer(const string& name)

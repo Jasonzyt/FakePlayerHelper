@@ -103,8 +103,9 @@ namespace FPHelper
 		void onRemove(Message msg);
 		void onConnect(Message msg);
 		void onDisconnect(Message msg);
-		static bool IsFakePlayer(Player* pl);
-		static bool IsFakePlayer(const std::string& pl);
+		bool IsInWaitList(const std::string& pl);
+		bool IsFakePlayer(Player* pl);
+		bool IsFakePlayer(const std::string& pl);
 		bool deleteFakePlayer(const std::string& name);
 		const Message parseMessage(const std::string& msg);
 	private:
@@ -124,11 +125,14 @@ namespace FPHelper
 		xuid_t summoner_xuid = 0;
 		bool online = false;
 		bool allowChatControl = false;
-		FakePlayer(Player* pl) : fp_ptr(pl), summoner_name("Unknown"), online(true) {}
+		FakePlayer(Player* pl) : fp_ptr(pl), summoner_name("[Unknown]"), online(true) 
+		{
+			name = fp_ptr->getNameTag();
+		}
 		FakePlayer(const std::string& fp_name, const std::string& fp_summoner_name, 
 			xuid_t fp_summoner_xuid, bool allowChatControl = true)
 			: name(fp_name), summoner_name(fp_summoner_name), summoner_xuid(fp_summoner_xuid),
-			allowChatControl(allowChatControl) {}
+			allowChatControl(allowChatControl), online(true) {}
 		void teleport(const Vec3& pos, int dim);
 	};
 }

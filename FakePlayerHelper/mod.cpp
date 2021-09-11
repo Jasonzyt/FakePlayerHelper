@@ -89,30 +89,35 @@ namespace FPHelper
 			auto type = ori.getOriginType();
 			if (type == OriginType::DedicatedServer || type == OriginType::Player)
 			{
-				if (fpws->fp_list.size() >= cfg->max_global_fp)
+				if (!fpws->IsFakePlayer(name))
 				{
-					outp.error(LANG("fpcmd.global_limit.exceed"));
-					return true;
-				}
-				string fp_summoner;
-				xuid_t fp_summoner_xuid = 0;
-				if (type == OriginType::DedicatedServer) fp_summoner = "[Console]";
-				else
-				{
-					int sum = 0;
-					Player* exer = (Player*)ori.getEntity();
-					fp_summoner = exer->getNameTag();
-					fp_summoner_xuid = getXuid(exer);
-					for (auto& it : fpws->fp_list)
-						if (it->summoner_xuid == fp_summoner_xuid)
-							sum++;
-					if (sum >= cfg->max_player_fp)
+					if (fpws->fp_list.size() >= cfg->max_global_fp)
 					{
-						outp.error(LANG("fpcmd.player_limit.exceed"));
+						outp.error(LANG("fpcmd.global_limit.exceed"));
 						return true;
 					}
+					string fp_summoner;
+					xuid_t fp_summoner_xuid = 0;
+					if (type == OriginType::DedicatedServer) fp_summoner = "[Console]";
+					else
+					{
+						int sum = 0;
+						Player* exer = (Player*)ori.getEntity();
+						fp_summoner = exer->getNameTag();
+						fp_summoner_xuid = getXuid(exer);
+						for (auto& it : fpws->fp_list)
+							if (it->summoner_xuid == fp_summoner_xuid)
+								sum++;
+						if (sum >= cfg->max_player_fp)
+						{
+							outp.error(LANG("fpcmd.player_limit.exceed"));
+							return true;
+						}
+					}
+					auto res = fpws->add(new FakePlayer(name, fp_summoner, fp_summoner_xuid, true));
+					return true;
 				}
-				auto res = fpws->add(new FakePlayer(name, fp_summoner, fp_summoner_xuid, true));
+				outp.error(LANG("fpcmd.fp.already.exists"));
 			}
 			return true;
 		}
@@ -148,17 +153,20 @@ namespace FPHelper
 			auto type = ori.getOriginType();
 			if (type == OriginType::DedicatedServer || type == OriginType::Player)
 			{
-				if (tg.results(ori).count() == 0)
+				auto res = tg.results(ori);
+				if (res.empty())
 				{
 					outp.error(LANG("fpcmd.selector.not_matched"));
 					return true;
 				}
 				for (auto& it : fpws->fp_list)
 				{
-					if (it->name.c_str() == name.c_str())
+					if (it->name == name)
 					{
-						auto target = *(tg.results(ori).begin());
-						it->teleport(target->getPos(), (int)(target->getDimensionId()));
+						auto target = *res.begin();
+						auto dst = target->getPos();
+						auto dst_dim = (int)(target->getDimensionId());
+						it->teleport(dst, dst_dim);
 						return true;
 					}
 				}
@@ -169,18 +177,20 @@ namespace FPHelper
 
 #if defined(BDS_V1_16)
 		bool TeleportCmd_Pos(CommandOrigin const& ori, CommandOutput& outp, MyEnum<FPCMD_TP2>,
-			std::string name, CommandPositionFloat& pos)
+			std::string name, CommandPositionFloat& pos, optional<MyEnum<FPCMD_Dimension>> dim)
 		{
 			auto type = ori.getOriginType();
 			if (type == OriginType::DedicatedServer || type == OriginType::Player)
 			{
 				for (auto& it : fpws->fp_list)
 				{
-					if (it->name.c_str() == it->name.c_str())
+					if (it->name == it->name)
 					{
+						auto dst = *pos.getPosition(ori);
 						int exer_dim = 0;
 						if (type == OriginType::Player) exer_dim = ori.getEntity()->getDimensionId();
-						it->teleport(*(pos.getPosition(ori)), 0);
+						auto dst_dim = (dim.Set() ? (int)((FPCMD_Dimension)dim.val()) - 1 : exer_dim);
+						it->teleport(dst, dst_dim);
 						return true;
 					}
 				}
@@ -201,7 +211,9 @@ namespace FPHelper
 					{
 						int exer_dim = 0;
 						if (type == OriginType::Player) exer_dim = ori.getEntity()->getDimensionId();
-						it->teleport(Vec3{ x,y,z } , (dim.Set() ? (int)((FPCMD_Dimension)dim.val()) - 1 : exer_dim));
+						auto dst = Vec3{ x,y,z };
+						auto dst_dim = (dim.Set() ? (int)((FPCMD_Dimension)dim.val()) - 1 : exer_dim);
+						it->teleport(dst , dst_dim);
 						return true;
 					}
 				}
@@ -238,7 +250,7 @@ namespace FPHelper
 			CEnum<CMD::FPCMD_Remove_All> _cenum4("remove_all", { "remove_all" });
 			CEnum<CMD::FPCMD_TP1> _cenum5("tp", { "tp" });
 			CEnum<CMD::FPCMD_TP2> _cenum6("tp", { "tp" });
-			CEnum<CMD::FPCMD_Dimension> _cenum7("dimen", { "overworld","nether","end" });
+			CEnum<CMD::FPCMD_Dimension> _cenum7("dimension", { "overworld","nether","end" });
 			CEnum<CMD::FPCMD_Connect> _cenum8("connect", { "connect" });
 			CmdOverload(fp, CMD::ConnectCmd, "connect");
 			CmdOverload(fp, CMD::ListCmd, "list");
@@ -249,7 +261,7 @@ namespace FPHelper
 			{
 				CmdOverload(fp, CMD::TeleportCmd, "tp", LANG("fpcmd.fpname"), LANG("fpcmd.tp.selector"));
 #if defined(BDS_V1_16)
-				CmdOverload(fp, CMD::TeleportCmd_Pos, "tp", LANG("fpcmd.fpname"), LANG("fpcmd.tp.dst"));
+				CmdOverload(fp, CMD::TeleportCmd_Pos, "tp", LANG("fpcmd.fpname"), LANG("fpcmd.tp.dst"), LANG("fpcmd.tp.dim"));
 #elif defined(BDS_V1_17)
 				CmdOverload(fp, CMD::TeleportCmd_Pos, "tp", LANG("fpcmd.fpname"), "x", "y", "z", LANG("fpcmd.tp.dim"));
 #else
@@ -260,6 +272,7 @@ namespace FPHelper
 		PRINT("Plugin started! Ver", FPH_VERSION, ' ', FPH_VERTYPE);
 	}
 }
+
 using namespace FPHelper;
 FPHAPI bool IsFakePlayer(Player* pl);
 THook(VA, "??0?$SPSCQueue@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@$0CAA@@@QEAA@_K@Z", VA thiz)
@@ -343,7 +356,6 @@ THook(void, "?startServerThread@ServerInstance@@QEAAXXZ", void* thiz)
 {
 	original(thiz);
 	level = mc->getLevel();
-
 	fpws->connect_ws();
 }
 

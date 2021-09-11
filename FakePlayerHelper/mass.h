@@ -11,6 +11,12 @@
 #include <loader/loader.h>
 #include "TextPacket.h"
 
+struct RelativeFloat 
+{
+	float offset;
+	bool relative;
+};
+
 namespace FPHelper
 {
 	inline bool runcmd(const std::string& cmd)
@@ -150,13 +156,11 @@ namespace FPHelper
 	inline void teleport(Actor* actor, Vec3 dst, int dim)
 	{
 #if defined(BDS_V1_16)
-		/*SymCall("?entityChangeDimension@Level@@QEAAXAEAVActor@@V?$AutomaticID@VDimension@@H@@@Z",
-			__int64, Level*, Actor*, uint32_t)(level, actor, dim);*/
 		try {
-			//SymCall("?changeDimension@Actor@@UEAAXV?$AutomaticID@VDimension@@H@@_N@Z",
-				//__int64, Actor*, uint32_t, const ActorUniqueID&)(actor, dim, actor->getUniqueID());
-			SymCall("?teleportTo@Actor@@UEAAXAEBVVec3@@_NHHAEBUActorUniqueID@@@Z",
-				void, Actor*, const Vec3*, const ActorUniqueID&)(actor, &dst, actor->getUniqueID());
+			SymCall("?teleport@TeleportCommand@@SAXAEAVActor@@VVec3@@PEAV3@V?$AutomaticID@VDimension@@H@@VRelativeFloat"
+				"@@4HAEBUActorUniqueID@@@Z", void, Actor&, Vec3, Vec3*, AutomaticID<Dimension, int>,
+				RelativeFloat, RelativeFloat, int, ActorUniqueID const&)(*actor, dst, nullptr, dim,
+				{ 0,true }, { 0,true }, 12, actor->getUniqueID());
 		}
 		catch(const seh_excpetion& e) 
 		{
