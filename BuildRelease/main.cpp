@@ -69,7 +69,7 @@ bool modifyFile(string fn, string _regex, string target) {
 int main(int argc, char** argv) {
 	ios::sync_with_stdio(false);
 	if (argc >= 2) {
-		if (argv[2] == string("release")) actions = false;
+		if (argc >= 3 && argv[2] == string("release")) actions = false;
 		if (argv[1] == string("bds:1.16.4")) {
 			cout << "[INFO] BDS v1.16.4" << endl;
 			cout << "[INFO] Creating build config...";
@@ -79,12 +79,12 @@ int main(int argc, char** argv) {
 				cout << "\n[ERROR] Failed to open file: " << BUILD_H << endl;
 				return 1;
 			}
-			if (actions) file << "#define BDS_V1_16\n#define BUILD_RELEASE\n#define ACTIONS_BUILD";
-			else file << "#define BDS_V1_16\n#define BUILD_RELEASE";
+			if (actions) file << "#define BDS_V1_16\n#define BUILD_RELEASE\n#define ACTIONS_BUILD\n";
+			else file << "#define BDS_V1_16\n#define BUILD_RELEASE\n";
 			file.close();
 			cout << "DONE!" << endl;
 			cout << "[INFO] Modify Visual Studio Project file" << endl;
-			cout << "[INFO] Modifying sdditional include directories(Change LiteLoader SDK Version)";
+			cout << "[INFO] Modifying sdditional include directories(Change LiteLoader SDK Version)" << endl;
 			modifyFile(VCXPROJ, "<AdditionalIncludeDirectories>(.+)</AdditionalIncludeDirectories>",
 				"<AdditionalIncludeDirectories>./LLSDK_1.16;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>");
 		}
@@ -97,12 +97,12 @@ int main(int argc, char** argv) {
 				cout << "\n[ERROR] Failed to open file: " << BUILD_H << endl;
 				return 1;
 			}
-			if (actions) file << "#define BDS_V1_16\n#define BUILD_RELEASE\n#define ACTIONS_BUILD";
-			else file << "#define BDS_V1_16\n#define BUILD_RELEASE";
+			if (actions) file << "#define BDS_LATEST\n#define BUILD_RELEASE\n#define ACTIONS_BUILD\n";
+			else file << "#define BDS_LATEST\n#define BUILD_RELEASE\n";
 			file.close();
 			cout << "DONE!" << endl;
 			cout << "[INFO] Modifying Visual Studio Project file..." << endl;
-			cout << "[INFO] Modifying sdditional include directories(Change LiteLoader SDK Version)";
+			cout << "[INFO] Modifying sdditional include directories(Change LiteLoader SDK Version)" << endl;
 			modifyFile(VCXPROJ, "<AdditionalIncludeDirectories>(.+)</AdditionalIncludeDirectories>",
 				"<AdditionalIncludeDirectories>./LLSDK;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>");
 		}

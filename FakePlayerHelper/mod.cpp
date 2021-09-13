@@ -6,8 +6,13 @@
 #include "fakeplayer.h"
 #include <loader/hook.h>
 #include <mc/Command.h>
+#if defined(BDS_V1_16)
 #include <api/commands.h>
 #include <api/Basic_Event.h>
+#elif defined(BDS_LATEST)
+#include <api/regCommandHelper.h>
+#include <api/basicEvent.h>
+#endif
 
 using namespace std;
 

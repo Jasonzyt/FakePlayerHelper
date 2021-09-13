@@ -11,7 +11,6 @@
 #include <atomic>
 #include <thread>
 #include <functional>
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -36,7 +35,7 @@
 #if defined(BDS_V1_16)
 	#pragma comment(lib,"./LLSDK_1.16/LiteLoader.lib")
 #elif defined(BDS_LATEST)
-	#pragma comment(lib,"./LLSDK_1.17/LiteLoader.lib")
+	#pragma comment(lib,"./LLSDK/LiteLoader.lib")
 #endif
 #pragma warning(disable:4996)
 
