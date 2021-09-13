@@ -35,6 +35,7 @@ jobs:
       run: | 
         ./BuildRelease.exe bds:1.16.4
         msbuild  FakePlayerHelper.sln /p:Configuration=Release
+      shell: bash
 
     - name: Copy Output Files(1)
       working-directory: ${{env.GITHUB_WORKSPACE}}
