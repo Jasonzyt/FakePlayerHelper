@@ -32,7 +32,7 @@ namespace FPHelper
 #if defined(BDS_V1_16)
 		SymCall("?forEachPlayer@Level@@QEBAXV?$function@$$A6A_NAEBVPlayer@@@Z@std@@@Z",
 			void, Level*, std::function<bool(Player&)>)(level, cb);
-#elif defined(BDS_V1_17)
+#elif defined(BDS_LATEST)
 		SymCall("?forEachPlayer@Level@@UEBAXV?$function@$$A6A_NAEBVPlayer@@@Z@std@@@Z",
 			void, Level*, std::function<bool(Player&)>)(level, cb);
 #else
@@ -74,7 +74,7 @@ namespace FPHelper
 		dAccess<char, 40>(pkt) = (char)tp;
 		dAccess<std::string*, 48>(pkt) = &src;
 		dAccess<std::string*, 80>(pkt) = &msg;
-#elif defined(BDS_V1_17)
+#elif defined(BDS_LATEST)
 		dAccess<char, 48>(pkt) = (char)tp;
 		dAccess<string, 56>(pkt) = "Server";
 		// dAccess<string, 48>(pkt) = this->getName();
@@ -136,7 +136,7 @@ namespace FPHelper
 	{
 #if defined(BDS_V1_16)
 		return FETCH(Certificate*, pl + 2736);
-#elif defined(BDS_V1_17)
+#elif defined(BDS_LATEST)
 		return SymCall("?getCertificate@Player@@QEBAPEBVCertificate@@XZ", Certificate*, Player*)(pl);
 #else
 #error "BDS version is wrong"
@@ -166,7 +166,7 @@ namespace FPHelper
 		{
 			PRINT<ERROR, RED>("SEH Exception: [", e.code(), ']', e.what());
 		}
-#elif defined(BDS_V1_17)
+#elif defined(BDS_LATEST)
 		char mem[128];
 		SymCall(
 			"?computeTarget@TeleportCommand@@SA?AVTeleportTarget@@AEAVActor@@VVec3@@PEAV4@V?$"
@@ -180,6 +180,18 @@ namespace FPHelper
 #endif
 	}
 
+	inline std::vector<std::string> split(std::string str, char ch) 
+	{
+		std::vector<std::string> rv;
+		if (!str.empty())
+		{
+			std::istringstream iss(str);
+			string line;
+			while (getline(iss, line, ch))
+				rv.push_back(line);
+		}
+		return rv;
+	}
 	template<typename ... Args>
 	inline std::string format(const std::string& format, Args... args)
 	{

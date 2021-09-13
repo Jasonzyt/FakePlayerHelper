@@ -180,7 +180,7 @@ public:
     uint64_t          handler = 0;                                          // 32
     uint32_t          incompressible = 0;                                   // 40
 };
-#elif defined(BDS_V1_17)
+#elif defined(BDS_LATEST)
 class Packet {
 public:
     unsigned          unk2 = 2;                                             // 8
