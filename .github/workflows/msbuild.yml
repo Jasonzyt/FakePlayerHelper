@@ -33,7 +33,7 @@ jobs:
     - name: Build FakePlayerHelper for BDS 1.16.40
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: | 
-        BuildRelease.exe bds:1.16.4
+        ./BuildRelease.exe bds:1.16.4
         msbuild  FakePlayerHelper.sln /p:Configuration=Release
 
     - name: Copy Output Files(1)
@@ -43,7 +43,7 @@ jobs:
 
     - name: Build FakePlayerHelper for latest BDS
       run: |
-        BuildRelease.exe bds:latest
+        ./BuildRelease.exe bds:latest
         msbuild  FakePlayerHelper.sln /p:Configuration=Release
 
     - name: Copy Output Files(2)
