@@ -21,7 +21,7 @@ jobs:
 
     - name: Build BuildRelease Tool
       working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: msbuild BuildRelease/BuildRelease.sln /p:Configuration=Release
+      run: MsBuild BuildRelease/BuildRelease.sln /p:Configuration=Release
 
     - name: Copy License
       working-directory: ${{env.GITHUB_WORKSPACE}}
@@ -34,7 +34,7 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: | 
         ./BuildRelease.exe bds:1.16.4
-        msbuild  FakePlayerHelper.sln /p:Configuration=Release
+        MsBuild.exe  FakePlayerHelper.sln /p:Configuration=Release
       shell: bash
 
     - name: Copy Output Files(1)
@@ -45,7 +45,7 @@ jobs:
     - name: Build FakePlayerHelper for latest BDS
       run: |
         ./BuildRelease.exe bds:latest
-        msbuild  FakePlayerHelper.sln /p:Configuration=Release
+        MsBuild.exe  FakePlayerHelper.sln /p:Configuration=Release
 
     - name: Copy Output Files(2)
       working-directory: ${{env.GITHUB_WORKSPACE}}
