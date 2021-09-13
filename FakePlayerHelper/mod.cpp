@@ -6,8 +6,13 @@
 #include "fakeplayer.h"
 #include <loader/hook.h>
 #include <mc/Command.h>
+#if defined(BDS_V1_16)
 #include <api/commands.h>
 #include <api/Basic_Event.h>
+#elif defined(BDS_LATEST)
+#include <api/regCommandHelper.h>
+#include <api/basicEvent.h>
+#endif
 
 using namespace std;
 
@@ -198,7 +203,7 @@ namespace FPHelper
 			}
 			return true;
 		}
-#elif defined(BDS_V1_17)
+#elif defined(BDS_LATEST)
 		bool TeleportCmd_Pos(CommandOrigin const& ori, CommandOutput& outp, MyEnum<FPCMD_TP2>,
 			std::string name, float x, float y, float z, optional<MyEnum<FPCMD_Dimension>> dim)
 		{
@@ -262,14 +267,20 @@ namespace FPHelper
 				CmdOverload(fp, CMD::TeleportCmd, "tp", LANG("fpcmd.fpname"), LANG("fpcmd.tp.selector"));
 #if defined(BDS_V1_16)
 				CmdOverload(fp, CMD::TeleportCmd_Pos, "tp", LANG("fpcmd.fpname"), LANG("fpcmd.tp.dst"), LANG("fpcmd.tp.dim"));
-#elif defined(BDS_V1_17)
+#elif defined(BDS_LATEST)
 				CmdOverload(fp, CMD::TeleportCmd_Pos, "tp", LANG("fpcmd.fpname"), "x", "y", "z", LANG("fpcmd.tp.dim"));
 #else
 #error "BDS version is wrong"
 #endif
 			}
 		});
-		PRINT("Plugin started! Ver", FPH_VERSION, ' ', FPH_VERTYPE);
+#if defined(TEST_VERSION)
+		PRINT("Plugin started! Ver", FPH_VERSION, ' ', FPH_VERTYPE, "(ONLY FOR TEST)");
+#elif defined(ACTIONS_BUILD)
+		PRINT("Plugin started! Ver", FPH_VERSION, ' ', FPH_VERTYPE, "(ACTIONS)");
+#else 
+		PRINT("Plugin started! Ver", FPH_VERSION, ' ', FPH_VERTYPE, "(RELEASE)");
+#endif
 	}
 }
 

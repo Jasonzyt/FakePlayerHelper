@@ -1,11 +1,11 @@
-﻿#ifndef LOGGER_H
+#ifndef LOGGER_H
 #define LOGGER_H
 #include "pch.h"
 
 #if defined(BDS_V1_16)
 	void registerASYNC2(struct asyncFStream*);
 	void unregisterASYNC2(struct asyncFStream*, struct asyncFStream*);
-#elif defined(BDS_V1_17)
+#elif defined(BDS_LATEST)
 	LIAPI void registerASYNC2(struct asyncFStream*);
 	LIAPI void unregisterASYNC2(struct asyncFStream*, struct asyncFStream*);
 #endif

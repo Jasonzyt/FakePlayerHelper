@@ -1,6 +1,5 @@
 #ifndef PCH_H
 #define PCH_H
-//#define WIN32_LEAN_AND_MEAN
 // Windows 头文件
 #include <windows.h>
 // C++ 标准库
@@ -12,7 +11,6 @@
 #include <atomic>
 #include <thread>
 #include <functional>
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -21,21 +19,23 @@
 #include <ctime>
 // LiteLoader
 #include <liteloader.h>
+#include "build.h"
 #include "seh_excpetion.h"
 
 #define FETCH(tp, ptr) (*reinterpret_cast<tp*>(ptr))
 #define PRINT coutp.p
 #define FPHAPI __declspec(dllexport)
-#define BDS_V1_16
-//#define BDS_V1_17
-//#define BUILD_RELEASE
 #undef max
 #undef min
 #undef ERROR
+#if defined(TEST_VERSION)
+    //#define BDS_LATEST
+    #define BDS_V1_16
+#endif
 #if defined(BDS_V1_16)
 	#pragma comment(lib,"./LLSDK_1.16/LiteLoader.lib")
-#elif defined(BDS_V1_17)
-	#pragma comment(lib,"./LLSDK_1.17/LiteLoader.lib")
+#elif defined(BDS_LATEST)
+	#pragma comment(lib,"./LLSDK/LiteLoader.lib")
 #endif
 #pragma warning(disable:4996)
 

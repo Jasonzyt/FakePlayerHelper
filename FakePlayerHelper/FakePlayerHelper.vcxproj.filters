@@ -65,6 +65,9 @@
     <ClInclude Include="TextPacket.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="build.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="langpack.json">

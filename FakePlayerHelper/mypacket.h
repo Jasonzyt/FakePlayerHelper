@@ -1,4 +1,5 @@
 #pragma once
+#if defined(BDS_V1_16)
 #include "loader/Loader.h"
 #include <stl/useful.h>
 #include <string>
@@ -170,7 +171,6 @@ enum class PacketReliability {
     RelibleOrdered
 };
 
-#if defined(BDS_V1_16)
 class Packet{
 public:
     int* vptr;                                                              // 8
@@ -180,30 +180,6 @@ public:
     uint64_t          handler = 0;                                          // 32
     uint32_t          incompressible = 0;                                   // 40
 };
-#elif defined(BDS_V1_17)
-class Packet {
-public:
-    unsigned          unk2 = 2;                                             // 8
-    PacketReliability reliableOrdered = PacketReliability::RelibleOrdered;  // 12
-    unsigned char     clientSubId = 0;                                      // 16
-    uint64_t          unk24 = 0;                                            // 24
-    uint64_t          unk40 = 0;                                            // 32
-    uint32_t          incompressible = 0;                                   // 40
-
-    inline Packet(unsigned compress)
-        : incompressible(!compress) {
-    }
-    inline Packet() {
-    }
-    inline virtual ~Packet() {
-    }
-    virtual MinecraftPacketIds getId() const = 0;
-    virtual std::string getName() const = 0;
-    virtual void        write(BinaryStream&) const = 0;
-    virtual void        dummyread() = 0;
-    virtual bool        disallowBatching() const = 0;
-};
-#endif
 
 template <MinecraftPacketIds pid, bool batching = true, bool compress = true>
 class MyPkt : public Packet {
@@ -234,3 +210,4 @@ public:
     }
 };
 //static_assert(offsetof(MyPkt<MinecraftPacketIds(0)>, view) == 48);
+#endif

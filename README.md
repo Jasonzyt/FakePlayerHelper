@@ -5,6 +5,9 @@
 - [easywsclient](https://github.com/dhbaird/easywsclient) [MIT]
 - [BedrockX](https://github.com/Sysca11/BedrockX) [GPL-3.0(with extra restrictions&exceptions)]
 - [FakePlayer](https://github.com/ddf8196/FakePlayer)
+## Note
+- This plugin depends on [FakePlayer](https://github.com/ddf8196/FakePlayer/actions) with WebSocket(The latest version in actions)
+- Only supported BDS `1.17.10+` & `1.16.40`
 ## Usage
 1. Download `FakePlayerHelper-[Version].dll` from [Releases](https://github.com/Jasonzyt/FakePlayerHelper/releases)
 2. Put the plugin into plugin folder of your plugin loader(or injector)
