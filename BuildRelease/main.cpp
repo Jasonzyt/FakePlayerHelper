@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
 			cout << "[INFO] Modify Visual Studio Project file" << endl;
 			cout << "[INFO] Modifying sdditional include directories(Change LiteLoader SDK Version)";
 			modifyFile(VCXPROJ, "<AdditionalIncludeDirectories>(.+)</AdditionalIncludeDirectories>",
-				"<AdditionalIncludeDirectories>./LLSDK_1.16.4;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>");
+				"<AdditionalIncludeDirectories>./LLSDK_1.16;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>");
 		}
 		else if (argv[1] == string("bds:latest")) {
 			cout << "[INFO] BDS Latest" << endl;
