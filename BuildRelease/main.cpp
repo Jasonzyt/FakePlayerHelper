@@ -66,11 +66,64 @@ bool modifyFile(string fn, string _regex, string target) {
 	return true;
 }
 
+string getFiles(string dir) {
+	string files;
+	fs::directory_iterator fit(dir);
+	for (auto& it : fit)
+		files += '"' + it.path().string() + "\" ";
+	return files;
+}
+
 int main(int argc, char** argv) {
 	ios::sync_with_stdio(false);
 	if (argc >= 2) {
-		if (argc >= 3 && argv[2] == string("release")) actions = false;
+		if (argv[1] == string("release")) {
+			actions = false;
+			try {
+				fs::copy_file(BUILD_H, BUILD_H + ".tmp");
+				fs::copy_file(VCXPROJ, VCXPROJ + ".tmp");
+				if (!fs::exists("./RELEASES/")) 
+					fs::create_directories("./RELEASES/");
+				else { 
+					fs::remove_all("./RELEASES/"); 
+					fs::create_directories("./RELEASES/");
+				}
+			}
+			catch (fs::filesystem_error e) {
+				cout << "[ERROR] Filesystem error:" << e.what() << endl;
+			}
+			goto BDS_1_16;
+		LA:
+			system("MsBuild.exe ./FakePlayerHelper.sln -property:Configuration=Release");
+			try {
+				fs::copy("./x64/Release/", "./RELEASES/1.16.4/");
+			}
+			catch (fs::filesystem_error e) {
+				cout << "[ERROR] Filesystem error:" << e.what() << endl;
+			}
+			goto LATEST_BDS;
+		LB:
+			system("MsBuild.exe ./FakePlayerHelper.sln -property:Configuration=Release");
+			try {
+				fs::copy("./x64/Release/", "./RELEASES/latest/");
+				fs::copy_file("./LICENSE", "./RELEASES/1.16.4/LICENSE");
+				fs::copy_file("./LICENSE", "./RELEASES/latest/LICENSE");
+				fs::remove(BUILD_H);
+				fs::remove(VCXPROJ);
+				fs::rename(BUILD_H + ".tmp", BUILD_H);
+				fs::rename(VCXPROJ + ".tmp", VCXPROJ);
+				auto files = getFiles("./RELEASES/1.16.4/");
+				system(("bz c -fmt:zip ./RELEASES/FakePlayerHelper-forBDS1.16.zip " + files).c_str());
+				files = getFiles("./RELEASES/latest/");
+				system(("bz c -fmt:zip ./RELEASES/FakePlayerHelper-forLatestBDS.zip " + files).c_str());
+			}
+			catch (fs::filesystem_error e) {
+				cout << "[ERROR] Filesystem error:" << e.what() << endl;
+			}
+			return 0;
+		}
 		if (argv[1] == string("bds:1.16.4")) {
+		BDS_1_16:
 			cout << "[INFO] BDS v1.16.4" << endl;
 			cout << "[INFO] Creating build config...";
 			if (!fs::exists(BUILD_H)) fstream(BUILD_H, ios::app | ios::out);
@@ -87,8 +140,10 @@ int main(int argc, char** argv) {
 			cout << "[INFO] Modifying sdditional include directories(Change LiteLoader SDK Version)" << endl;
 			modifyFile(VCXPROJ, "<AdditionalIncludeDirectories>(.+)</AdditionalIncludeDirectories>",
 				"<AdditionalIncludeDirectories>./LLSDK_1.16;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>");
+			if (!actions) goto LA;
 		}
 		else if (argv[1] == string("bds:latest")) {
+		LATEST_BDS:
 			cout << "[INFO] BDS Latest" << endl;
 			cout << "[INFO] Creating build config...";
 			if (!fs::exists(BUILD_H)) fstream(BUILD_H, ios::app | ios::out);
@@ -105,6 +160,7 @@ int main(int argc, char** argv) {
 			cout << "[INFO] Modifying sdditional include directories(Change LiteLoader SDK Version)" << endl;
 			modifyFile(VCXPROJ, "<AdditionalIncludeDirectories>(.+)</AdditionalIncludeDirectories>",
 				"<AdditionalIncludeDirectories>./LLSDK;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>");
+			if (!actions) goto LB;
 		}
 		else {
 			cout << "[ERROR] Invalid parameters" << endl;
