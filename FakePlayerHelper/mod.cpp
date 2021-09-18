@@ -306,6 +306,7 @@ THook(void, "?sendLoginMessageLocal@ServerNetworkHandler@@QEAAXAEBVNetworkIdenti
 			fp->online = true;
 			fpws->wait_list.pop_back();
 			fpws->fp_list.push_back(fp);
+			for (auto& it : fpws->onConnect_cb) it(pl);
 			auto cinfo = localization("console.join.info.format", fp->name.c_str(), 
 				LANG(getDimensionName(fp->fp_ptr->getDimensionId())), Vec3ToString(fp->fp_ptr->getPos()).c_str());
 			auto ginfo = localization("gamemsg.join.info.format", fp->name.c_str(), 
@@ -327,6 +328,7 @@ THook(void, "?_onPlayerLeft@ServerNetworkHandler@@AEAAXPEAVServerPlayer@@_N@Z",
 		if ((*it)->name == pl->getNameTag())
 		{
 			fpws->fp_list.erase(it);
+			for (auto& it2 : fpws->onConnect_cb) it2(pl);
 			auto cinfo = localization("console.left.info.format", fp->name.c_str(), 
 				LANG(getDimensionName(fp->fp_ptr->getDimensionId())), Vec3ToString(fp->fp_ptr->getPos()).c_str());
 			auto ginfo = localization("gamemsg.left.info.format", fp->name.c_str(),  
@@ -384,4 +386,12 @@ FPHAPI bool IsFakePlayer(Player* pl)
 		if (pl->getNameTag() == it->name)
 			return true;
 	return false;
+}
+FPHAPI void addFakePlayerConnectCallback(function<void(Player*)> cb) 
+{
+	fpws->onConnect_cb.push_back(cb);
+}
+FPHAPI void addFakePlayerDisconnectCallback(function<void(Player*)> cb)
+{
+	fpws->onDisconnect_cb.push_back(cb);
 }

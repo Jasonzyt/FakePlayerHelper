@@ -83,6 +83,8 @@ namespace FPHelper
 		std::vector<std::string> all_fp;
 		std::vector<FakePlayer*> fp_list;
 		std::vector<FakePlayer*> wait_list;
+		std::vector<std::function<void(Player*)>> onConnect_cb;
+		std::vector<std::function<void(Player*)>> onDisconnect_cb;
 		int sync_timer = 0;
 		int reconnect_num = 0;
 		int thread_total = 0;
