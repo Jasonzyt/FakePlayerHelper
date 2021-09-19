@@ -26,6 +26,7 @@ namespace FPHelper
 	VA p_spscqueue;
 	Level* level = nullptr;
 	Minecraft* mc = nullptr;
+	void* wlfile = nullptr;
 
 	namespace CMD
 	{
@@ -44,17 +45,51 @@ namespace FPHelper
 			The_End = 3
 		};
 
+		bool checkCommandPermission(CommandOrigin const& ori, CommandOutput& outp) 
+		{
+			switch (cfg->perm.type) 
+			{
+			case Config::Permission::ConsoleOnly:
+				if (ori.getOriginType() != OriginType::DedicatedServer)
+				{
+					outp.error(LANG("fpcmd.no.permission"));
+					return false;
+				}
+				break;
+			case Config::Permission::Specified:
+				if (ori.getOriginType() == OriginType::Player)
+				{
+					auto pl = (Player*)ori.getEntity();
+					if (pl) 
+					{
+						auto xuid = getXuid(pl);
+						for (auto& it : cfg->perm.allow_list)
+							if (it == xuid) return true;
+					}
+				}
+				else if (ori.getOriginType() == OriginType::DedicatedServer) return true;
+				outp.error(LANG("fpcmd.no.permission"));
+				return false;
+			case Config::Permission::ALL:
+				break;
+			}
+			return true;
+		}
+
 		bool ConnectCmd(CommandOrigin const& ori, CommandOutput& outp, MyEnum<FPCMD_Connect>)
 		{
-			auto type = ori.getOriginType();
-			if (type == OriginType::DedicatedServer || type == OriginType::Player)
+			if (checkCommandPermission(ori, outp))
 			{
-				if (fpws)
+				auto type = ori.getOriginType();
+				if (type == OriginType::DedicatedServer || type == OriginType::Player)
 				{
-					if (!fpws->connected) fpws->connect_ws();
-					else outp.error(localization("fpws.already.connected"));
+					if (fpws)
+					{
+						if (!fpws->connected) fpws->connect_ws();
+						else outp.error(localization("fpws.already.connected"));
+					}
+					else outp.error("NullPointerException");
 				}
-				else outp.error("NullPointerException");
 			}
 			return true;
 		}
@@ -64,7 +99,33 @@ namespace FPHelper
 			if (type == OriginType::DedicatedServer || type == OriginType::Player)
 			{
 				ostringstream oss;
-				oss << format("%s: %d/%d", LANG("listcmd.opt.total"), fpws->fp_list.size(), cfg->max_global_fp);
+				if (cfg->max_global_fp == 0 && cfg->max_player_fp == 0)
+					oss << format("%s: %d", LANG("listcmd.opt.total"), fpws->fp_list.size());
+				else 
+				{
+					if (type == OriginType::DedicatedServer) 
+					{
+						oss << format("%s: %d/%d", LANG("listcmd.opt.total"),
+							fpws->fp_list.size(), cfg->max_global_fp);
+					}
+					else
+					{
+						int sum = 0;
+						auto xuid = getXuid((Player*)ori.getEntity());
+						for (auto& it : fpws->fp_list)
+							if (it->summoner_xuid == xuid)
+								sum++;
+						if (cfg->max_global_fp == 0)
+							oss << format("%s: %d (Yours: %d/%d)", LANG("listcmd.opt.total"),
+								fpws->fp_list.size(), sum, cfg->max_player_fp);
+						else if (cfg->max_player_fp == 0)
+							oss << format("%s: %d/%d", LANG("listcmd.opt.total"),
+								fpws->fp_list.size(), cfg->max_global_fp);
+						else
+							oss << format("%s: %d/%d (Yours: %d/%d)", LANG("listcmd.opt.total"),
+								fpws->fp_list.size(), cfg->max_global_fp, sum, cfg->max_player_fp);
+					}
+				}
 				if (fpws->fp_list.size())
 				{
 					oss << format("\n=========================== %s ===========================\n", LANG("listcmd.opt.header"));
@@ -91,91 +152,109 @@ namespace FPHelper
 		}
 		bool AddCmd(CommandOrigin const& ori, CommandOutput& outp, MyEnum<FPCMD_Add>, std::string name)
 		{
-			auto type = ori.getOriginType();
-			if (type == OriginType::DedicatedServer || type == OriginType::Player)
+			if (checkCommandPermission(ori, outp))
 			{
-				if (!fpws->IsFakePlayer(name))
+				auto type = ori.getOriginType();
+				if (type == OriginType::DedicatedServer || type == OriginType::Player)
 				{
-					if (fpws->fp_list.size() >= cfg->max_global_fp)
+					if (!fpws->IsFakePlayer(name))
 					{
-						outp.error(LANG("fpcmd.global_limit.exceed"));
+						if (cfg->max_global_fp > 0)
+						{
+							if (fpws->fp_list.size() >= cfg->max_global_fp)
+							{
+								outp.error(LANG("fpcmd.global_limit.exceed"));
+								return true;
+							}
+						}
+						string fp_summoner;
+						xuid_t fp_summoner_xuid = 0;
+						if (type == OriginType::DedicatedServer) fp_summoner = "[Console]";
+						else
+						{
+							Player* exer = (Player*)ori.getEntity();
+							fp_summoner = exer->getNameTag();
+							fp_summoner_xuid = getXuid(exer);
+							if (cfg->max_global_fp > 0)
+							{
+								int sum = 0;
+								for (auto& it : fpws->fp_list)
+									if (it->summoner_xuid == fp_summoner_xuid)
+										sum++;
+								if (sum >= cfg->max_player_fp)
+								{
+									outp.error(LANG("fpcmd.player_limit.exceed"));
+									return true;
+								}
+							}
+						}
+						auto res = fpws->add(new FakePlayer(name, fp_summoner, fp_summoner_xuid, true));
 						return true;
 					}
-					string fp_summoner;
-					xuid_t fp_summoner_xuid = 0;
-					if (type == OriginType::DedicatedServer) fp_summoner = "[Console]";
-					else
-					{
-						int sum = 0;
-						Player* exer = (Player*)ori.getEntity();
-						fp_summoner = exer->getNameTag();
-						fp_summoner_xuid = getXuid(exer);
-						for (auto& it : fpws->fp_list)
-							if (it->summoner_xuid == fp_summoner_xuid)
-								sum++;
-						if (sum >= cfg->max_player_fp)
-						{
-							outp.error(LANG("fpcmd.player_limit.exceed"));
-							return true;
-						}
-					}
-					auto res = fpws->add(new FakePlayer(name, fp_summoner, fp_summoner_xuid, true));
-					return true;
+					outp.error(LANG("fpcmd.fp.already.exists"));
 				}
-				outp.error(LANG("fpcmd.fp.already.exists"));
 			}
 			return true;
 		}
 		bool RemoveCmd(CommandOrigin const& ori, CommandOutput& outp, MyEnum<FPCMD_Remove>, std::string name)
 		{
-			auto type = ori.getOriginType();
-			if (type == OriginType::DedicatedServer || type == OriginType::Player)
+			if (checkCommandPermission(ori, outp))
 			{
-				for (auto& it : fpws->fp_list)
+				auto type = ori.getOriginType();
+				if (type == OriginType::DedicatedServer || type == OriginType::Player)
 				{
-					if (do_hash(it->name) == do_hash(name))
+					for (auto& it : fpws->fp_list)
 					{
-						auto res = fpws->remove(it);
-						return true;
+						if (do_hash(it->name) == do_hash(name))
+						{
+							auto res = fpws->remove(it);
+							return true;
+						}
 					}
+					outp.error(format(LANG("fpcmd.fail.format"), LANG("fpcmd.cant_find_fp")));
 				}
-				outp.error(format(LANG("fpcmd.fail.format"), LANG("fpcmd.cant_find_fp")));
 			}
 			return true;
 		}
 		bool RemoveAllCmd(CommandOrigin const& ori, CommandOutput& outp, MyEnum<FPCMD_Remove_All>)
 		{
-			auto type = ori.getOriginType();
-			if (type == OriginType::DedicatedServer || type == OriginType::Player)
+			if (checkCommandPermission(ori, outp))
 			{
-				outp.error(LANG("fp.api.unfinished"));
+				auto type = ori.getOriginType();
+				if (type == OriginType::DedicatedServer || type == OriginType::Player)
+				{
+					outp.error(LANG("fp.api.unfinished"));
+				}
 			}
 			return true;
 		}
 		bool TeleportCmd(CommandOrigin const& ori, CommandOutput& outp, MyEnum<FPCMD_TP1>, 
 			string name, CommandSelector<Actor>& tg)
 		{
-			auto type = ori.getOriginType();
-			if (type == OriginType::DedicatedServer || type == OriginType::Player)
+			if (checkCommandPermission(ori, outp))
 			{
-				auto res = tg.results(ori);
-				if (res.empty())
+				auto type = ori.getOriginType();
+				if (type == OriginType::DedicatedServer || type == OriginType::Player)
 				{
-					outp.error(LANG("fpcmd.selector.not_matched"));
-					return true;
-				}
-				for (auto& it : fpws->fp_list)
-				{
-					if (it->name == name)
+					auto res = tg.results(ori);
+					if (res.empty())
 					{
-						auto target = *res.begin();
-						auto dst = target->getPos();
-						auto dst_dim = (int)(target->getDimensionId());
-						it->teleport(dst, dst_dim);
+						outp.error(LANG("fpcmd.selector.not_matched"));
 						return true;
 					}
+					for (auto& it : fpws->fp_list)
+					{
+						if (it->name == name)
+						{
+							auto target = *res.begin();
+							auto dst = target->getPos();
+							auto dst_dim = (int)(target->getDimensionId());
+							it->teleport(dst, dst_dim);
+							return true;
+						}
+					}
+					outp.error(format(LANG("fpcmd.fail.format"), LANG("fpcmd.cant_find_fp")));
 				}
-				outp.error(format(LANG("fpcmd.fail.format"), LANG("fpcmd.cant_find_fp")));
 			}
 			return true;
 		}
@@ -184,22 +263,25 @@ namespace FPHelper
 		bool TeleportCmd_Pos(CommandOrigin const& ori, CommandOutput& outp, MyEnum<FPCMD_TP2>,
 			std::string name, CommandPositionFloat& pos, optional<MyEnum<FPCMD_Dimension>> dim)
 		{
-			auto type = ori.getOriginType();
-			if (type == OriginType::DedicatedServer || type == OriginType::Player)
+			if (checkCommandPermission(ori, outp))
 			{
-				for (auto& it : fpws->fp_list)
+				auto type = ori.getOriginType();
+				if (type == OriginType::DedicatedServer || type == OriginType::Player)
 				{
-					if (it->name == it->name)
+					for (auto& it : fpws->fp_list)
 					{
-						auto dst = *pos.getPosition(ori);
-						int exer_dim = 0;
-						if (type == OriginType::Player) exer_dim = ori.getEntity()->getDimensionId();
-						auto dst_dim = (dim.Set() ? (int)((FPCMD_Dimension)dim.val()) - 1 : exer_dim);
-						it->teleport(dst, dst_dim);
-						return true;
+						if (it->name == it->name)
+						{
+							auto dst = *pos.getPosition(ori);
+							int exer_dim = 0;
+							if (type == OriginType::Player) exer_dim = ori.getEntity()->getDimensionId();
+							auto dst_dim = (dim.Set() ? (int)((FPCMD_Dimension)dim.val()) - 1 : exer_dim);
+							it->teleport(dst, dst_dim);
+							return true;
+						}
 					}
+					outp.error(format(LANG("fpcmd.fail.format"), LANG("fpcmd.cant_find_fp")));
 				}
-				outp.error(format(LANG("fpcmd.fail.format"), LANG("fpcmd.cant_find_fp")));
 			}
 			return true;
 		}
@@ -207,22 +289,25 @@ namespace FPHelper
 		bool TeleportCmd_Pos(CommandOrigin const& ori, CommandOutput& outp, MyEnum<FPCMD_TP2>,
 			std::string name, float x, float y, float z, optional<MyEnum<FPCMD_Dimension>> dim)
 		{
-			auto type = ori.getOriginType();
-			if (type == OriginType::DedicatedServer || type == OriginType::Player)
+			if (checkCommandPermission(ori, outp))
 			{
-				for (auto& it : fpws->fp_list)
+				auto type = ori.getOriginType();
+				if (type == OriginType::DedicatedServer || type == OriginType::Player)
 				{
-					if (it->name == name)
+					for (auto& it : fpws->fp_list)
 					{
-						int exer_dim = 0;
-						if (type == OriginType::Player) exer_dim = ori.getEntity()->getDimensionId();
-						auto dst = Vec3{ x,y,z };
-						auto dst_dim = (dim.Set() ? (int)((FPCMD_Dimension)dim.val()) - 1 : exer_dim);
-						it->teleport(dst , dst_dim);
-						return true;
+						if (it->name == name)
+						{
+							int exer_dim = 0;
+							if (type == OriginType::Player) exer_dim = ori.getEntity()->getDimensionId();
+							auto dst = Vec3{ x,y,z };
+							auto dst_dim = (dim.Set() ? (int)((FPCMD_Dimension)dim.val()) - 1 : exer_dim);
+							it->teleport(dst, dst_dim);
+							return true;
+						}
 					}
+					outp.error(format(LANG("fpcmd.fail.format"), LANG("fpcmd.cant_find_fp")));
 				}
-				outp.error(format(LANG("fpcmd.fail.format"), LANG("fpcmd.cant_find_fp")));
 			}
 			return true;
 		}
@@ -370,6 +455,11 @@ THook(void, "?startServerThread@ServerInstance@@QEAAXXZ", void* thiz)
 	original(thiz);
 	level = mc->getLevel();
 	fpws->connect_ws();
+}
+THook(int, "?reload@WhitelistFile@@QEAA?AW4FileReadResult@@XZ", void* a)
+{
+	wlfile = a;
+	return original(a);
 }
 
 // FakePlayerHelper API

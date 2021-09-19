@@ -277,6 +277,7 @@ namespace FPHelper
 					PRINT<WARN, RED>("fpws.invalid.skin");
 					skin = "steve";
 				}
+				addPlayerToWhiteList(fp->name);
 				ws->send(format(R"({"id":"%s","type":"add","data":{"name":"%s","skin":"%s","allowChatControl":%s}})",
 					pkt.id.c_str(), fp->name.c_str(), skin.c_str(), pkt.allowChatControl ? "true" : "false"));
 				wait_list.push_back(fp);
@@ -293,6 +294,7 @@ namespace FPHelper
 		case FPWS::PacketType::Connect:
 			if (fp)
 			{
+				addPlayerToWhiteList(fp->name);
 				ws->send(format(R"({"id":"%s","type":"connect","data":{"name":"%s"}})", pkt.id.c_str(), fp->name.c_str()));
 				wait_list.push_back(fp);
 				return true;

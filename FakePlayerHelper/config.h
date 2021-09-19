@@ -17,8 +17,8 @@ namespace FPHelper
 		bool allow_tp = true;
 		bool kick_fp = false; // Kick fakeplayer when summoner left
 		//bool remove_fp = false; // Remove fakeplayer when disconnect
-		int max_global_fp = 0; // 0 = Unlimited
-		int max_player_fp = 0; // 0 = Unlimited
+		unsigned int max_global_fp = 0; // 0 = Unlimited
+		unsigned int max_player_fp = 0; // 0 = Unlimited
 		int ws_port = 0;
 		struct Permission
 		{

@@ -8,11 +8,19 @@
 
 using namespace std;
 namespace fs = filesystem;
-const string BUILD_H = "./FakePlayerHelper/build.h";
-const string VCXPROJ = "./FakePlayerHelper/FakePlayerHelper.vcxproj";
+const string LANGPACK = "./FakePlayerHelper/langpack.json";
+const string BUILD_H  = "./FakePlayerHelper/build.h";
+const string VCXPROJ  = "./FakePlayerHelper/FakePlayerHelper.vcxproj";
 bool actions = true;
 
 string readFile(fstream& file) {
+	ostringstream oss;
+	oss << file.rdbuf();
+	return oss.str();
+}
+
+string readFile(const string& fn) {
+	fstream file(fn, ios::in);
 	ostringstream oss;
 	oss << file.rdbuf();
 	return oss.str();
@@ -127,13 +135,15 @@ int main(int argc, char** argv) {
 			cout << "[INFO] BDS v1.16.4" << endl;
 			cout << "[INFO] Creating build config...";
 			if (!fs::exists(BUILD_H)) fstream(BUILD_H, ios::app | ios::out);
-			fstream file(BUILD_H, ios::ate | ios::out | ios::in);
+			fstream file(BUILD_H, ios::ate | ios::out);
 			if (!file.is_open()) {
 				cout << "\n[ERROR] Failed to open file: " << BUILD_H << endl;
 				return 1;
 			}
+			auto lpk = readFile(LANGPACK);
 			if (actions) file << "#define BDS_V1_16\n#define BUILD_RELEASE\n#define ACTIONS_BUILD\n";
 			else file << "#define BDS_V1_16\n#define BUILD_RELEASE\n";
+			file << "const std::string FPH_LANGPACK_CONTENT = u8R\"(" << lpk << ")\";";
 			file.close();
 			cout << "DONE!" << endl;
 			cout << "[INFO] Modify Visual Studio Project file" << endl;
@@ -152,8 +162,10 @@ int main(int argc, char** argv) {
 				cout << "\n[ERROR] Failed to open file: " << BUILD_H << endl;
 				return 1;
 			}
+			auto lpk = readFile(LANGPACK);
 			if (actions) file << "#define BDS_LATEST\n#define BUILD_RELEASE\n#define ACTIONS_BUILD\n";
 			else file << "#define BDS_LATEST\n#define BUILD_RELEASE\n";
+			file << "const std::string FPH_LANGPACK_CONTENT = u8R\"(" << lpk << ")\";";
 			file.close();
 			cout << "DONE!" << endl;
 			cout << "[INFO] Modifying Visual Studio Project file..." << endl;

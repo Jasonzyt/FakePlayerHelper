@@ -9,6 +9,9 @@
 #include <mc/Certificate.h>
 #include <api/types/types.h>
 #include <loader/loader.h>
+#include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 #include "TextPacket.h"
 
 struct RelativeFloat 
@@ -19,6 +22,33 @@ struct RelativeFloat
 
 namespace FPHelper
 {
+	inline void reloadWhiteList() 
+	{
+		SymCall("?reload@WhitelistFile@@QEAA?AW4FileReadResult@@XZ", int, void*)(wlfile);
+	}
+	inline void addPlayerToWhiteList(const std::string& name)
+	{
+		rapidjson::Document doc;
+		rapidjson::Value obj(rapidjson::kObjectType);
+		std::ostringstream oss;
+		auto alloc = doc.GetAllocator();
+		std::fstream fstm("whitelist.json", std::ios::app | std::ios::in);
+		oss << fstm.rdbuf();
+		fstm.close();
+		doc.Parse(oss.str().c_str());
+		for (int i = 0; i < doc.Size(); i++)
+			if (doc[i]["name"] == rapidjson::Value().SetString(name.c_str(), alloc)) return;
+		obj.AddMember("ignoresPlayerLimit", false, alloc);
+		obj.AddMember("name", rapidjson::Value().SetString(name.c_str(), alloc), alloc);
+		doc.PushBack(obj, alloc);
+		rapidjson::StringBuffer buf;
+		rapidjson::Writer writer(buf);
+		doc.Accept(writer);
+		fstm = std::fstream("whitelist.json", std::ios::ate | std::ios::out);
+		fstm << buf.GetString();
+		fstm.close();
+		reloadWhiteList();
+	}
 	inline bool runcmd(const std::string& cmd)
 	{
 		extern VA p_spscqueue;
