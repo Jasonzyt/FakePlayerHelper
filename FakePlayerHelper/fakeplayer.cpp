@@ -19,10 +19,10 @@ namespace FPHelper
 		}
 	}
 
-	void FPWS::connect_ws()
+	void WebSocket::connect_ws()
 	{
 		string url = "ws://127.0.0.1:" + to_string(cfg->ws_port);
-		ws = WebSocket::from_url(url);
+		ws = easywsclient::WebSocket::from_url(url);
 		if (this->ws)
 		{
 			connected = true;
@@ -39,7 +39,7 @@ namespace FPHelper
 			PRINT<ERROR, RED>(LANG("fpws.failed.connect"), url);
 		}
 	}
-	void FPWS::tick()
+	void WebSocket::tick()
 	{
 		lock_guard<mutex> a(mtx);
 		if (sync_timer >= 100)
@@ -57,10 +57,10 @@ namespace FPHelper
 				{
 					switch (resp.pt)
 					{
-					case FPHelper::FPWS::PacketType::List:
+					case FPHelper::WebSocket::PacketType::List:
 						break;
-					case FPHelper::FPWS::PacketType::Add:
-					case FPHelper::FPWS::PacketType::Connect:
+					case FPHelper::WebSocket::PacketType::Add:
+					case FPHelper::WebSocket::PacketType::Connect:
 						if (resp.success)
 						{
 							PRINT(localization("console.successfully.add.fakeplayer"));
@@ -72,8 +72,8 @@ namespace FPHelper
 							sendMessageAll(localization("gamemsg.failed.add.fakeplayer.format", resp.reason.c_str()));
 						}
 						break;
-					case FPHelper::FPWS::PacketType::Remove:
-					case FPHelper::FPWS::PacketType::Disconnect:
+					case FPHelper::WebSocket::PacketType::Remove:
+					case FPHelper::WebSocket::PacketType::Disconnect:
 						if (resp.success)
 						{
 							PRINT(localization("console.successfully.remove.fakeplayer"));
@@ -85,19 +85,19 @@ namespace FPHelper
 							sendMessageAll(localization("gamemsg.failed.remove.fakeplayer.format", resp.reason.c_str()));
 						}
 						break;
-					case FPHelper::FPWS::PacketType::GetState:
+					case FPHelper::WebSocket::PacketType::GetState:
 						break;
-					case FPHelper::FPWS::PacketType::Remove_All:
+					case FPHelper::WebSocket::PacketType::Remove_All:
 						break;
-					case FPHelper::FPWS::PacketType::Connect_All:
+					case FPHelper::WebSocket::PacketType::Connect_All:
 						break;
-					case FPHelper::FPWS::PacketType::Disconnect_All:
+					case FPHelper::WebSocket::PacketType::Disconnect_All:
 						break;
-					case FPHelper::FPWS::PacketType::GetVersion:
+					case FPHelper::WebSocket::PacketType::GetVersion:
 						PRINT(localization("fpws.version.msg.format", resp.version.c_str()));
 						sendMessageAll(localization("gamemsg.ws.fp.version", resp.version.c_str()));
 						break;
-					case FPHelper::FPWS::PacketType::GetState_All:
+					case FPHelper::WebSocket::PacketType::GetState_All:
 						for (auto& it : resp.players)
 						{
 							if (it.state == FPState::CONNECTED)
@@ -120,7 +120,7 @@ namespace FPHelper
 							}
 						}
 						break;
-					case FPHelper::FPWS::PacketType::SetChatControl:
+					case FPHelper::WebSocket::PacketType::SetChatControl:
 						break;
 					default:
 						PRINT<ERROR, RED>(LANG("fpws.unknown.packet.type"));
@@ -138,7 +138,7 @@ namespace FPHelper
 		}
 	}
 
-	void FPWS::process()
+	void WebSocket::process()
 	{
 		pool->enqueue([&]() {
 			while (ws->getReadyState() != WebSocket::CLOSED)
@@ -165,7 +165,7 @@ namespace FPHelper
 			}
 			});
 	}
-	string FPWS::getID()
+	string WebSocket::getID()
 	{
 		string res;
 		for (int i = 0; i < 20; i++)
@@ -180,9 +180,9 @@ namespace FPHelper
 	}
 
 #pragma region Event
-	void FPWS::onAdd(Message msg) {}
+	void WebSocket::onAdd(Message msg) {}
 
-	void FPWS::onRemove(Message msg)
+	void WebSocket::onRemove(Message msg)
 	{
 		auto it = all_fp.begin();
 		for (; it != all_fp.end(); it++)
@@ -195,7 +195,7 @@ namespace FPHelper
 		}
 	}
 
-	void FPWS::onConnect(Message msg) 
+	void WebSocket::onConnect(Message msg) 
 	{
 		if (!IsFakePlayer(msg.name) && !IsInWaitList(msg.name))
 		{
@@ -205,11 +205,11 @@ namespace FPHelper
 		}
 	}
 
-	void FPWS::onDisconnect(Message msg) {}
+	void WebSocket::onDisconnect(Message msg) {}
 #pragma endregion
 
 #pragma region SendWebsocketMessage
-	bool FPWS::add(FakePlayer* fp)
+	bool WebSocket::add(FakePlayer* fp)
 	{
 		string id = getID();
 		WSPacket pkt;
@@ -222,48 +222,48 @@ namespace FPHelper
 		return send(pkt);
 	}
 
-	bool FPWS::remove(FakePlayer* fp)
+	bool WebSocket::remove(FakePlayer* fp)
 	{
 		string id = getID();
 		WSPacket pkt{ id,PacketType::Disconnect,fp };
 		return send(pkt);
 	}
 
-	bool FPWS::remove_all(){}
+	bool WebSocket::remove_all(){}
 
-	bool FPWS::list()
+	bool WebSocket::list()
 	{
 		string id = getID();
 		WSPacket pkt{ id,PacketType::List,nullptr };
 		return send(pkt);
 	}
 
-	bool FPWS::getVersion()
+	bool WebSocket::getVersion()
 	{
 		string id = getID();
 		WSPacket pkt{ id,PacketType::GetVersion };
 		return send(pkt);
 	}
 
-	bool FPWS::getStates()
+	bool WebSocket::getStates()
 	{
 		string id = getID();
 		WSPacket pkt{ id,PacketType::GetState_All };
 		return send(pkt);
 	}
 
-	bool FPWS::send(WSPacket pkt)
+	bool WebSocket::send(WSPacket pkt)
 	{
 		if (!connected) return false;
 		if (!ws || ws->getReadyState() == WebSocket::CLOSED) return false;
 		auto fp = pkt.target;
 		switch (pkt.pt)
 		{
-		case FPWS::PacketType::List:
+		case WebSocket::PacketType::List:
 			ws->send(format("{\"id\":\"%s\",\"type\":\"list\"}", pkt.id));
 			return true;
 			break;
-		case FPWS::PacketType::Add:
+		case WebSocket::PacketType::Add:
 			if (fp)
 			{
 				string skin = cfg->skin;
@@ -284,14 +284,14 @@ namespace FPHelper
 				return true;
 			}
 			break;
-		case FPWS::PacketType::Remove:
+		case WebSocket::PacketType::Remove:
 			if (fp)
 			{
 				ws->send(format(R"({"id":"%s","type":"remove","data":{"name":"%s"}})", pkt.id.c_str(), fp->name.c_str()));
 				return true;
 			}
 			break;
-		case FPWS::PacketType::Connect:
+		case WebSocket::PacketType::Connect:
 			if (fp)
 			{
 				addPlayerToWhiteList(fp->name);
@@ -300,36 +300,36 @@ namespace FPHelper
 				return true;
 			}
 			break;
-		case FPWS::PacketType::Disconnect:
+		case WebSocket::PacketType::Disconnect:
 			if (fp)
 			{
 				ws->send(format(R"({"id":"%s","type":"disconnect","data":{"name":"%s"}})", pkt.id.c_str(), fp->name.c_str()));
 				return true;
 			}
 			break;
-		case FPWS::PacketType::GetState:
+		case WebSocket::PacketType::GetState:
 			if (fp)
 			{
 				ws->send(format(R"({"id":"%s","type":"getState","data":{"name":"%s"}})", pkt.id.c_str(), fp->name.c_str()));
 				return true;
 			}
 			break;
-		case FPWS::PacketType::Remove_All:
+		case WebSocket::PacketType::Remove_All:
 			ws->send(format("{\"id\":\"%s\",\"type\":\"remove_all\"}", pkt.id.c_str()));
 			return true;
-		case FPWS::PacketType::Connect_All:
+		case WebSocket::PacketType::Connect_All:
 			ws->send(format("{\"id\":\"%s\",\"type\":\"connect_all\"}", pkt.id.c_str()));
 			return true;
-		case FPWS::PacketType::Disconnect_All:
+		case WebSocket::PacketType::Disconnect_All:
 			ws->send(format("{\"id\":\"%s\",\"type\":\"disconnect_all\"}", pkt.id.c_str()));
 			return true;
-		case FPWS::PacketType::GetVersion:
+		case WebSocket::PacketType::GetVersion:
 			ws->send(format("{\"id\":\"%s\",\"type\":\"getVersion\"}", pkt.id.c_str()));
 			return true;
-		case FPWS::PacketType::GetState_All:
+		case WebSocket::PacketType::GetState_All:
 			ws->send(format("{\"id\":\"%s\",\"type\":\"getState_all\"}", pkt.id.c_str()));
 			return true;
-		case FPWS::PacketType::SetChatControl:
+		case WebSocket::PacketType::SetChatControl:
 			if (fp)
 			{
 				ws->send(format(R"({"id":"%s","type":"setChatControl","data":{"allowChatControl":%s}})",
@@ -342,26 +342,26 @@ namespace FPHelper
 #pragma endregion
 
 #pragma region Other
-	bool FPWS::IsInWaitList(const string& pl)
+	bool WebSocket::IsInWaitList(const string& pl)
 	{
 		for (auto& it : wait_list)
 			if (it->name == pl) return true;
 		return false;
 	}
-	bool FPWS::IsFakePlayer(Player* pl)
+	bool WebSocket::IsFakePlayer(Player* pl)
 	{
 		for (auto& it : fp_list)
 			if (pl == it->fp_ptr) return true;
 		return false;
 	}
-	bool FPWS::IsFakePlayer(const string& pl)
+	bool WebSocket::IsFakePlayer(const string& pl)
 	{
 		for (auto& it : fp_list)
 			if (it->fp_ptr && pl == it->fp_ptr->getNameTag())
 				return true;
 		return false;
 	}
-	bool FPWS::deleteFakePlayer(const string& name)
+	bool WebSocket::deleteFakePlayer(const string& name)
 	{
 		auto it = fp_list.begin();
 		for (; it != fp_list.end(); it++)
@@ -376,7 +376,7 @@ namespace FPHelper
 #pragma endregion
 
 #pragma region Parse
-	FPWS::PacketType FPWS::parsePacketType(const string& tp)
+	WebSocket::PacketType WebSocket::parsePacketType(const string& tp)
 	{
 		switch (H(tp))
 		{
@@ -395,7 +395,7 @@ namespace FPHelper
 		}
 		return PacketType::Unknown;
 	}
-	FPWS::EventType FPWS::parseEventType(const string& ev)
+	WebSocket::EventType WebSocket::parseEventType(const string& ev)
 	{
 		switch (H(ev))
 		{
@@ -406,7 +406,7 @@ namespace FPHelper
 		}
 		return EventType::Unknown;
 	}
-	const FPWS::Message FPWS::parseMessage(const string& msgstr)
+	const WebSocket::Message WebSocket::parseMessage(const string& msgstr)
 	{
 		Message msg;
 		Document doc;
@@ -480,16 +480,16 @@ namespace FPHelper
 			if (ev != EventType::Remove) msg.stat = (FPState)doc["data"]["state"].GetInt();
 			switch (ev)
 			{
-			case FPHelper::FPWS::EventType::Add:
+			case FPHelper::WebSocket::EventType::Add:
 				onAdd(msg);
 				break;
-			case FPHelper::FPWS::EventType::Remove:
+			case FPHelper::WebSocket::EventType::Remove:
 				onRemove(msg);
 				break;
-			case FPHelper::FPWS::EventType::Connect:
+			case FPHelper::WebSocket::EventType::Connect:
 				onConnect(msg);
 				break;
-			case FPHelper::FPWS::EventType::Disconnect:
+			case FPHelper::WebSocket::EventType::Disconnect:
 				onDisconnect(msg);
 				break;
 			}

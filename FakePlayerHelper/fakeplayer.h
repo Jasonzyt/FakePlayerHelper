@@ -8,12 +8,10 @@
 #include <mc/Actor.h>
 #include <mc/Player.h>
 
-using easywsclient::WebSocket;
-
 namespace FPHelper
 {
 	class FakePlayer;
-	class FPWS
+	class WebSocket
 	{
 	public:
 		enum class PacketType
@@ -75,7 +73,7 @@ namespace FPHelper
 			std::vector<PlayerData> players;
 		};
 		std::mutex mtx;
-		WebSocket::pointer ws = nullptr;
+		easywsclient::WebSocket::pointer ws = nullptr;
 		ThreadPool* pool = nullptr;
 		bool connected = false;
 		std::unordered_map<std::string, int> timer;
@@ -88,7 +86,7 @@ namespace FPHelper
 		int sync_timer = 0;
 		int reconnect_num = 0;
 		int thread_total = 0;
-		FPWS()
+		WebSocket()
 		{
 			pool = new ThreadPool(std::thread::hardware_concurrency());
 			srand(time(0));
@@ -97,25 +95,25 @@ namespace FPHelper
 		void tick();
 		bool add(FakePlayer* fp);
 		bool remove(FakePlayer* fp);
-		bool remove_all();
+		bool removeAll();
 		bool getVersion();
 		bool list();
 		bool getStates();
-		void onAdd(Message msg);
-		void onRemove(Message msg);
-		void onConnect(Message msg);
-		void onDisconnect(Message msg);
 		bool IsInWaitList(const std::string& pl);
 		bool IsFakePlayer(Player* pl);
 		bool IsFakePlayer(const std::string& pl);
 		bool deleteFakePlayer(const std::string& name);
 		const Message parseMessage(const std::string& msg);
 	private:
+		void onAdd(Message msg);
+		void onRemove(Message msg);
+		void onConnect(Message msg);
+		void onDisconnect(Message msg);
 		static PacketType parsePacketType(const std::string& tp);
 		static EventType parseEventType(const std::string& ev);
 		void process();
 		bool send(WSPacket pkt);
-		std::string getID();
+		static std::string getID();
 	};
 
 	class FakePlayer

@@ -55,13 +55,13 @@ namespace FPHelper
 	namespace fs = std::filesystem;
 	// 类声明
 	class Config;
-	class FPWS;
+	class WebSocket;
 	class LangPack;
 	// 外部变量
     extern void* wlfile;
 	extern Logger<stdio_commit*> coutp;
 	extern Config* cfg;
-	extern FPWS* fpws;
+	extern WebSocket* fpws;
 	extern LangPack* lpk;
 	extern Level* level;
 
