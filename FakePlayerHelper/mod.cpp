@@ -484,4 +484,27 @@ FPHAPI void addFakePlayerConnectCallback(function<void(Player*)> cb)
 FPHAPI void addFakePlayerDisconnectCallback(function<void(Player*)> cb)
 {
 	fpws->onDisconnect_cb.push_back(cb);
+extern "C" {
+	FPHAPI vector<Player*> getFakePlayers()
+	{
+		vector<Player*> rv;
+		for (auto& it : fpws->fp_list)
+			rv.push_back(it->fp_ptr);
+		return rv;
+	}
+	FPHAPI bool IsFakePlayer(Player* pl)
+	{
+		for (auto& it : fpws->fp_list)
+			if (pl->getNameTag() == it->name)
+				return true;
+		return false;
+	}
+	FPHAPI void addFakePlayerConnectCallback(function<void(Player*)> cb)
+	{
+		fpws->onConnect_cb.push_back(cb);
+	}
+	FPHAPI void addFakePlayerDisconnectCallback(function<void(Player*)> cb)
+	{
+		fpws->onDisconnect_cb.push_back(cb);
+	}
 }
