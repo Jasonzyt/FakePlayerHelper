@@ -1,8 +1,8 @@
 #include "pch.h"
-#include "mass.h"
-#include "logger.h"
-#include "config.h"
-#include "langpack.h"
+#include "Mess.h"
+#include "Logger.h"
+#include "Config.h"
+#include "LangPack.h"
 #include "fakeplayer.h"
 #include <loader/hook.h>
 #include <mc/Command.h>
@@ -21,9 +21,10 @@ namespace FPHelper
 	LangPack* lpk = new LangPack;
 	Config* cfg = new Config;
 	WebSocket* fpws = new WebSocket;
+#if defined(BDS_V1_16)
 	stdio_commit sc("[FPH] ");
-	Logger<stdio_commit*> coutp(&sc, true);
-	VA p_spscqueue;
+	OLogger<stdio_commit> coutp(sc, true);
+#endif
 	Level* level = nullptr;
 	Minecraft* mc = nullptr;
 	void* wlfile = nullptr;
@@ -371,11 +372,6 @@ namespace FPHelper
 
 using namespace FPHelper;
 FPHAPI bool IsFakePlayer(Player* pl);
-THook(VA, "??0?$SPSCQueue@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@$0CAA@@@QEAA@_K@Z", VA thiz)
-{
-	p_spscqueue = original(thiz);
-	return p_spscqueue;
-}
 THook(void, "?sendLoginMessageLocal@ServerNetworkHandler@@QEAAXAEBVNetworkIdentifier@@"
 	"AEBVConnectionRequest@@AEAVServerPlayer@@@Z",
 	void* thiz, NetworkIdentifier* Ni, void* ConnectionRequest, ServerPlayer* sp)

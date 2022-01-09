@@ -13,6 +13,9 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="Lib">
+      <UniqueIdentifier>{97a5e5d9-fb51-49b2-8bf9-7e5495ec6c03}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -24,10 +27,10 @@
     <ClCompile Include="mod.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="easywsclient\easywsclient.cpp">
+    <ClCompile Include="fakeplayer.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="fakeplayer.cpp">
+    <ClCompile Include="Command.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -38,7 +41,7 @@
     <ClInclude Include="logger.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="config.h">
+    <ClInclude Include="Config.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="fakeplayer.h">
@@ -68,6 +71,9 @@
     <ClInclude Include="build.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Types.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="langpack.json">
@@ -78,5 +84,10 @@
     <ResourceCompile Include="FakePlayerHelper.rc">
       <Filter>资源文件</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="third-party\easywsclient\easywsclient.lib">
+      <Filter>Lib</Filter>
+    </Library>
   </ItemGroup>
 </Project>

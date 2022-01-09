@@ -1,119 +1,121 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 #include "pch.h"
-#include "rapidjson/document.h"
-#include "rapidjson/prettywriter.h"
-#include "rapidjson/stringbuffer.h"
+#include <nlohmann/json.hpp>
 
-using rapidjson::Document, rapidjson::Value;
+namespace FPHelper {
 
-namespace FPHelper
-{
-	class Config
-	{
-	public:
-		std::string skin = ""; // steve/alex/random
-		std::string lang = "";
-		bool allow_tp = true;
-		bool kick_fp = false; // Kick fakeplayer when summoner left
-		//bool remove_fp = false; // Remove fakeplayer when disconnect
-		unsigned int max_global_fp = 0; // 0 = Unlimited
-		unsigned int max_player_fp = 0; // 0 = Unlimited
-		int ws_port = 0;
-		struct Permission
-		{
-			enum : char { ALL, Specified, ConsoleOnly } type;
-			std::vector<xuid_t> allow_list;
-		} perm;
-	private:
-		Document doc;
-		rapidjson::MemoryPoolAllocator<rapidjson::CrtAllocator> alloc;
-	public:
-		Config(){}
-		inline void init()
-		{
-			doc.SetObject();
-			if (fs::exists(FPH_CONFIG))
-			{
-				std::fstream fstm(FPH_CONFIG, std::ios::out | std::ios::in | std::ios::app);
-				std::ostringstream oss;
-				oss << fstm.rdbuf();
-				std::string buf = oss.str();
-				doc.Parse(buf.c_str());
-				fstm.close();
-				if (doc.HasParseError())
-				{
-					throw std::exception(("Failed to parse JSON: errcode(" + std::to_string(doc.GetParseError()) + ")").c_str());
-					return;
-				}
-				alloc = doc.GetAllocator();
-			}
-		}
-		inline bool writeJson()
-		{
-			rapidjson::StringBuffer buf;
-			rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buf);
-			bool res = doc.Accept(writer);
-			FILE* fp = fopen(FPH_CONFIG.c_str(), "w+");
-			fseek(fp, 0, 0);
-			fwrite(buf.GetString(), buf.GetSize(), 1, fp);
-			fclose(fp);
-			return res && buf.GetSize();
-		}
-		inline void parseJson()
-		{
-			if (!doc.HasMember("Skin") || !doc["Skin"].IsString()) 
-				doc.AddMember("Skin", Value().SetString("random"), alloc);
+    class Config {
+        
+        nlohmann::json json;
 
-			if (!doc.HasMember("Language") || !doc["Language"].IsString())
-				doc.AddMember("Language", Value().SetString("zh-cn"), alloc);
+    public:
+        std::string skin = ""; // steve/alex/random
+        std::string lang = "";
+        bool allow_tp = true;
+        bool kick_fp = false; // Kick fakeplayer when summoner left
+        //bool remove_fp = false; // Remove fakeplayer when disconnect
+        unsigned int max_global_fp = 0; // 0 = Unlimited
+        unsigned int max_player_fp = 0; // 0 = Unlimited
+        unsigned short ws_port = 0;
+        struct Permission
+        {
+            enum : char { ALL, Specified, ConsoleOnly } type;
+            std::vector<xuid_t> allow_list;
+        } perm;
+    public:
+        Config() {}
+        inline void init()
+        {
+            if (fs::exists(FPH_CONFIG))
+            {
+                std::fstream fstm(FPH_CONFIG, std::ios::out | std::ios::in | std::ios::app);
+                std::ostringstream oss;
+                oss << fstm.rdbuf();
+                std::string buf = oss.str();
+                if (buf.empty()) {
+                    buf = "{}";
+                }
+                fstm.close();
+                try {
+                    json = nlohmann::json::parse(buf);
+                }
+                catch (nlohmann::json::parse_error& e) {
+                    PRINT<ERROR, RED>("Can't parse config: ", e.what());
+                    json = nlohmann::json::object();
+                }
+            }
+        }
+        inline bool writeJson()
+        {
+            std::fstream fstm(FPH_CONFIG, std::ios::out | std::ios::ate);
+            if (!fstm.is_open()) {
+                PRINT<ERROR, RED>("Can't open config file: ", FPH_CONFIG);
+                return false;
+            }
+            fstm << setw(4) << json;
+            fstm.close();
+        }
+        inline void parseJson()
+        {
+            if (!json.count("Skin") || !json["Skin"].is_string()) {
+                json["Skin"] = "random";
+            }
+            skin = json["Skin"].get<std::string>();
 
-			if (!doc.HasMember("Allow_TP") || !doc["Allow_TP"].IsBool())
-				doc.AddMember("Allow_TP", true, alloc);
+            if (!json.count("Language") || !json["Language"].is_string()) {
+                json["Language"] = "en";
+            }
+            lang = json["Language"].get<std::string>();
 
-			if (!doc.HasMember("Kick_FP_when_summoner_left") || !doc["Kick_FP_when_summoner_left"].IsBool())
-				doc.AddMember("Kick_FP_when_summoner_left", false, alloc);
+            if (!json.count("AllowTeleport") || !json["AllowTeleport"].is_boolean()) {
+                json["AllowTeleport"] = true;
+            }
+            allow_tp = json["AllowTeleport"].get<bool>();
 
-			if (!doc.HasMember("Max_Global_FP") || !doc["Max_Global_FP"].IsInt())
-				doc.AddMember("Max_Global_FP", 10, alloc);
+            if (!json.count("KickFakePlayer") || !json["KickFakePlayer"].is_boolean()) {
+                json["KickFakePlayer"] = false;
+            }
+            kick_fp = json["KickFakePlayer"].get<bool>();
 
-			if (!doc.HasMember("Max_Player_FP") || !doc["Max_Player_FP"].IsInt())
-				doc.AddMember("Max_Player_FP", 2, alloc);
+            if (!json.count("MaxGlobalFakePlayer") || !json["MaxGlobalFakePlayer"].is_number_unsigned()) {
+                json["MaxGlobalFakePlayer"] = 10;
+            }
+            max_global_fp = json["MaxGlobalFakePlayer"].get<unsigned int>();
 
-			if (!doc.HasMember("WS_Port") || !doc["WS_Port"].IsInt())
-				doc.AddMember("WS_Port", 54321, alloc);
+            if (!json.count("MaxPlayerFakePlayer") || !json["MaxPlayerFakePlayer"].is_number_unsigned()) {
+                json["MaxPlayerFakePlayer"] = 5;
+            }
+            max_player_fp = json["MaxPlayerFakePlayer"].get<unsigned int>();
 
-			if (!doc.HasMember("Permission") || !doc["Permission"].IsObject())
-				doc.AddMember("Permission", Value().SetObject(), alloc);
+            if (!json.count("WebSocketPort") || !json["WebSocketPort"].is_number_integer()) {
+                json["WebSocketPort"] = 54321;
+            }
+            ws_port = json["WebSocketPort"].get<unsigned short>();
 
-			if (!doc["Permission"].HasMember("Allow") || !doc["Permission"]["Allow"].IsString())
-				doc["Permission"].AddMember("Allow", Value().SetString("ALL"), alloc);
+            if (!json.count("Permission") || !json["Permission"].is_object()) {
+                json["Permission"] = nlohmann::json{{"Allow", "ALL"}, {"Specified", {114514, 1919810}}};
+            }
+            auto str = json["Permission"]["Allow"].get<std::string>();
+            if (str == "ALL") {
+                perm.type = Permission::ALL;
+            }
+            else if (str == "Specified") {
+                perm.type = Permission::Specified;
+            }
+            else if (str == "ConsoleOnly") {
+                perm.type = Permission::ConsoleOnly;
+            }
+            else {
+                perm.type = Permission::ALL;
+            }
+            if (perm.type == Permission::Specified) {
+                perm.allow_list = json["Permission"]["Specified"].get<std::vector<xuid_t>>();
+            }
+        }
 
-			if (!doc["Permission"].HasMember("Specified") || !doc["Permission"]["Specified"].IsArray())
-				doc["Permission"].AddMember("Specified", Value().SetArray().PushBack((xuid_t)1145141919810, alloc), alloc);
-
-			writeJson();
-			skin = doc["Skin"].GetString();
-			lang = doc["Language"].GetString();
-			allow_tp = doc["Allow_TP"].GetBool();
-			kick_fp = doc["Kick_FP_when_summoner_left"].GetBool();
-			max_global_fp = doc["Max_Global_FP"].GetInt();
-			max_player_fp = doc["Max_Player_FP"].GetInt();
-			ws_port = doc["WS_Port"].GetInt();
-			if (ws_port <= 0 || ws_port > 65535)
-				throw std::exception("Invalid websocket port!!!");
-			std::string perm_str = doc["Permission"]["Allow"].GetString();
-			if (perm_str == "ALL") perm.type = Permission::ALL;
-			else if (perm_str == "Specified") perm.type = Permission::Specified;
-			else if (perm_str == "ConsoleOnly") perm.type = Permission::ConsoleOnly;
-			else throw std::exception("Invalid permission");
-			if (perm.type == Permission::Specified && !doc["Permission"]["Specified"].Empty())
-			{
-				for (u32 i = 0; i < doc["Permission"]["Specified"].Size(); i++)
-					perm.allow_list.push_back(doc["Permission"]["Specified"][i].GetUint64());
-			}
-		}
-	};
+    };
+    
 }
 
 #endif // !CONFIG_H

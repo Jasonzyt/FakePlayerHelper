@@ -23,7 +23,6 @@
 #include "seh_excpetion.h"
 
 #define FETCH(tp, ptr) (*reinterpret_cast<tp*>(ptr))
-#define PRINT coutp.p
 #define FPHAPI __declspec(dllexport)
 #undef max
 #undef min
@@ -33,9 +32,14 @@
     #define BDS_V1_16
 #endif
 #if defined(BDS_V1_16)
+	#define PRINT coutp.p
 	#pragma comment(lib,"./LLSDK_1.16/LiteLoader.lib")
 #elif defined(BDS_LATEST)
-	#pragma comment(lib,"./LLSDK/LiteLoader.lib")
+	#define PRINT lllog
+	#pragma comment(lib,"./LLSDK/Lib/LiteLoader.lib")
+	#pragma comment(lib,"./LLSDK/Lib/Chakra.lib")
+	#pragma comment(lib,"./LLSDK/Lib/bedrock_server_api.lib")
+	#pragma comment(lib,"./LLSDK/Lib/bedrock_server_var.lib")
 #endif
 #pragma warning(disable:4996)
 
@@ -47,7 +51,7 @@ typedef unsigned int u32;
 typedef unsigned short u16;
 
 template <typename COMMITER>
-class Logger;
+class OLogger;
 class Level;
 struct stdio_commit;
 namespace FPHelper
@@ -59,7 +63,9 @@ namespace FPHelper
 	class LangPack;
 	// 外部变量
     extern void* wlfile;
-	extern Logger<stdio_commit*> coutp;
+#if defined(BDS_V1_16)
+	extern OLogger<stdio_commit> coutp;
+#endif
 	extern Config* cfg;
 	extern WebSocket* fpws;
 	extern LangPack* lpk;

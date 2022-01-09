@@ -1,140 +1,128 @@
-#ifndef FAKEPLAYER_H
-#define FAKEPLAYER_H
+#pragma once
 #include "pch.h"
-#include "config.h"
-#include "logger.h"
-#include "threadpool.h"
-#include "easywsclient/easywsclient.hpp"
-#include <mc/Actor.h>
+#include <easywsclient/easywsclient.hpp>
+#include <ThreadPool.h>
+#if defined(BDS_V1_16)
 #include <mc/Player.h>
+#elif defined(BDS_LATEST)
+#include <MC/Player.hpp>
+#endif
 
-namespace FPHelper
-{
-	class FakePlayer;
-	class WebSocket
-	{
-	public:
-		enum class PacketType
-		{
+namespace FPHelper {
+
+    class FakePlayer {
+    
+    public:
+
+        struct Summoner {
+            std::string name;
+            xuid_t xuid;
+        } summoner;
+        Player* pl = nullptr;
+        std::string name;
+        std::string skin;
+        bool online = false;
+        bool allowChatControl = false;
+
+        FakePlayer(Player* pl, 
+                   const std::string& name, 
+                   bool allowChatControl, 
+                   const std::string& sname, 
+                   xuid_t sxuid) {
+            this->pl = pl;
+            this->name = name;
+            this->allowChatControl = allowChatControl;
+            this->online = pl;
+            this->summoner.name = sname;
+            this->summoner.xuid = sxuid;
+        }
+
+    }
+
+    extern std::vector<std::unique_ptr<FakePlayer>> fpList;
+    class WebSocket {
+
+    public:
+
+        enum class PacketType {
 			Unknown        = -1,
 			List           = 0,
 			Add            = 1,
 			Remove         = 2,
 			Connect        = 3,
 			Disconnect     = 4,
-			GetState       = 5,
-			Remove_All     = 6,
-			Connect_All    = 7,
-			Disconnect_All = 8,
-			GetVersion     = 9,
-			GetState_All   = 10,
-			SetChatControl = 11
+            List           = 5,
+			GetState       = 6,
+			Remove_All     = 7,
+			Connect_All    = 8,
+			Disconnect_All = 9,
+			GetVersion     = 10,
+			GetState_All   = 11,
+			SetChatControl = 12
 		};
-		enum class EventType 
-		{
-			Unknown    = -1,
-			Add        = 0,
-			Remove     = 1,
-			Connect    = 2,
-			Disconnect = 3
-		};
-		enum class FPState
-		{
-			CONNECTING,
-			CONNECTED,
-			DISCONNECTING,
-			DISCONNECTED,
-			RECONNECTING,
-			STOPPING,
-			STOPPED
-		};
-		struct WSPacket
-		{
-			std::string id;
-			PacketType pt = PacketType::Unknown;
-			FakePlayer* target = nullptr;
-			std::string name;
-			bool allowChatControl;
-		};
-		struct PlayerData 
-		{
-			std::string name;
-			FPState state;
-			bool allowChatControl;
-		};
-		struct Message
-		{
-			bool set = false;
-			std::string id, name, reason, version;
-			FPState stat;
-			bool success;
-			PacketType pt;
-			std::vector<std::string> list;
-			std::vector<PlayerData> players;
-		};
-		std::mutex mtx;
-		easywsclient::WebSocket::pointer ws = nullptr;
-		ThreadPool* pool = nullptr;
-		bool connected = false;
-		std::unordered_map<std::string, int> timer;
-		std::unordered_map<std::string, Message> resps;
-		std::vector<std::string> all_fp;
-		std::vector<FakePlayer*> fp_list;
-		std::vector<FakePlayer*> wait_list;
-		std::vector<std::function<void(Player*)>> onConnect_cb;
-		std::vector<std::function<void(Player*)>> onDisconnect_cb;
-		int sync_timer = 0;
-		int reconnect_num = 0;
-		int thread_total = 0;
-		WebSocket()
-		{
-			pool = new ThreadPool(std::thread::hardware_concurrency());
-			srand(time(0));
-		}
-		void connect_ws();
-		void tick();
-		bool add(FakePlayer* fp);
-		bool remove(FakePlayer* fp);
-		bool removeAll();
-		bool getVersion();
-		bool list();
-		bool getStates();
-		bool IsInWaitList(const std::string& pl);
-		bool IsFakePlayer(Player* pl);
-		bool IsFakePlayer(const std::string& pl);
-		bool deleteFakePlayer(const std::string& name);
-		const Message parseMessage(const std::string& msg);
-	private:
-		void onAdd(Message msg);
-		void onRemove(Message msg);
-		void onConnect(Message msg);
-		void onDisconnect(Message msg);
-		static PacketType parsePacketType(const std::string& tp);
-		static EventType parseEventType(const std::string& ev);
-		void process();
-		bool send(WSPacket pkt);
-		static std::string getID();
-	};
+        static const std::unordered_map<std::string, PacketType> packetTypeMap = {
+            { "list", PacketType::List },
+            { "add", PacketType::Add },
+            { "remove", PacketType::Remove },
+            { "connect", PacketType::Connect },
+            { "disconnect", PacketType::Disconnect },
+            { "list", PacketType::List },
+            { "getState", PacketType::GetState },
+            { "remove_all", PacketType::Remove_All },
+            { "connect_all", PacketType::Connect_All },
+            { "disconnect_all", PacketType::Disconnect_All },
+            { "getVersion", PacketType::GetVersion },
+            { "getState_all", PacketType::GetState_All },
+            { "setChatControl", PacketType::SetChatControl }
+        };
+        enum class EventType {
+            Unknown    = -1,
+            Add        = 0,
+            Remove     = 1,
+            Connect    = 2,
+            Disconnect = 3
+        };
+        static const std::unordered_map<std::string, EventType> eventTypeMap = {
+            { "add", EventType::Add },
+            { "remove", EventType::Remove },
+            { "connect", EventType::Connect },
+            { "disconnect", EventType::Disconnect }
+        };
 
-	class FakePlayer
-	{
-	public:
-		Player* fp_ptr = nullptr;
-		std::string name;
-		std::string summoner_name;
-		xuid_t summoner_xuid = 0;
-		bool online = false;
-		bool allowChatControl = false;
-		FakePlayer(Player* pl) : fp_ptr(pl), summoner_name("[Unknown]"), online(true) 
-		{
-			name = fp_ptr->getNameTag();
-		}
-		FakePlayer(const std::string& fp_name, const std::string& fp_summoner_name, 
-			xuid_t fp_summoner_xuid, bool allowChatControl = true)
-			: name(fp_name), summoner_name(fp_summoner_name), summoner_xuid(fp_summoner_xuid),
-			allowChatControl(allowChatControl), online(true) {}
-		void teleport(const Vec3& pos, int dim);
-	};
+        std::mutex mtx;
+        std::unordered_map<std::string, int> timer;                // Judge if the packet is timeout
+        std::unordered_map<std::string, 
+                           std::unique_ptr<nlohmann::json>> resp;  // Response of the packet
+        std::unordered_map<std::string, FakePlayer*> waiting;      // Waiting joining players
+        easywsclient::WebSocket::pointer ws = nullptr;             // WebSocket Client
+        ThreadPool pool;                                           // Thread pool
+        bool connected = false;                                    // If the WebSocket is connected
+        int syncTimer = 0;                                         // Sync timer(each 2400 ticks)
+        int reconnectCount = 0;                                    // Reconnect count
+        std::vector<std::function<void(Player*)>> onConnect, onDisconnect; // Callback functions
+
+        WebSocket();
+        void start();
+        void stop();
+        void tick();
+        void add(std::unique_ptr<FakePlayer> fp);
+        void remove(std::unique_ptr<FakePlayer> fp);
+        void removeAll();
+        void del(std::unique_ptr<FakePlayer> fp);
+        void getVersion();
+        void sync();
+        void send(const std::string& data);
+
+    private:
+
+        void onAdd(nlohmann::json& j);
+        void onRemove(nlohmann::json& j);
+        void onConnect(nlohmann::json& j);
+        void onDisconnect(nlohmann::json& j);
+        void process();
+        void process(nlohmann::json& j);
+        std::string generateID();
+
+    };
+
 }
-
-#endif // !FAKEPLAYER_H
