@@ -8,6 +8,7 @@ RELEASES
 FakePlayerHelper/build.h
 BuildRelease.exe
 BuildRelease.pdb
+.vscode/
 
 # User-specific files
 *.rsuser
