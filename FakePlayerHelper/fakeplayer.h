@@ -10,8 +10,18 @@
 
 namespace FPHelper {
 
+    enum class FPStatus {
+        CONNECTING,
+        CONNECTED,
+        DISCONNECTING,
+        DISCONNECTED,
+        RECONNECTING,
+        STOPPING,
+        STOPPED
+    };
+
     class FakePlayer {
-    
+
     public:
 
         struct Summoner {
@@ -20,15 +30,15 @@ namespace FPHelper {
         } summoner;
         Player* pl = nullptr;
         std::string name;
-        std::string skin;
+        //std::string skin;
         bool online = false;
-        bool allowChatControl = false;
+        bool allowChatControl = true;
 
-        FakePlayer(Player* pl, 
-                   const std::string& name, 
-                   bool allowChatControl, 
-                   const std::string& sname, 
-                   xuid_t sxuid) {
+        FakePlayer(Player* pl,
+            const std::string& name,
+            bool allowChatControl,
+            const std::string& sname,
+            xuid_t sxuid) {
             this->pl = pl;
             this->name = name;
             this->allowChatControl = allowChatControl;
@@ -37,30 +47,30 @@ namespace FPHelper {
             this->summoner.xuid = sxuid;
         }
 
-    }
+    };
 
-    extern std::vector<std::unique_ptr<FakePlayer>> fpList;
+    extern std::unordered_map<std::string, std::unique_ptr<FakePlayer>> fakePlayers;
     class WebSocket {
 
     public:
 
         enum class PacketType {
-			Unknown        = -1,
-			List           = 0,
-			Add            = 1,
-			Remove         = 2,
-			Connect        = 3,
-			Disconnect     = 4,
+            Unknown        = -1,
+            List           = 0,
+            Add            = 1,
+            Remove         = 2,
+            Connect        = 3,
+            Disconnect     = 4,
             List           = 5,
-			GetState       = 6,
-			Remove_All     = 7,
-			Connect_All    = 8,
-			Disconnect_All = 9,
-			GetVersion     = 10,
-			GetState_All   = 11,
-			SetChatControl = 12
-		};
-        static const std::unordered_map<std::string, PacketType> packetTypeMap = {
+            GetState       = 6,
+            Remove_All     = 7,
+            Connect_All    = 8,
+            Disconnect_All = 9,
+            GetVersion     = 10,
+            GetState_All   = 11,
+            SetChatControl = 12
+        };
+        std::unordered_map<std::string, PacketType> packetTypeMap{
             { "list", PacketType::List },
             { "add", PacketType::Add },
             { "remove", PacketType::Remove },
@@ -82,7 +92,7 @@ namespace FPHelper {
             Connect    = 2,
             Disconnect = 3
         };
-        static const std::unordered_map<std::string, EventType> eventTypeMap = {
+        std::unordered_map<std::string, EventType> eventTypeMap{
             { "add", EventType::Add },
             { "remove", EventType::Remove },
             { "connect", EventType::Connect },
@@ -106,14 +116,17 @@ namespace FPHelper {
         void stop();
         void tick();
         void add(std::unique_ptr<FakePlayer> fp);
-        void remove(std::unique_ptr<FakePlayer> fp);
+        void remove(FakePlayer* fp);
         void removeAll();
-        void del(std::unique_ptr<FakePlayer> fp);
+        void del(FakePlayer* fp);
         void getVersion();
         void sync();
-        void send(const std::string& data);
+        void setChatControl(FakePlayer* fp, bool allowChatControl);
+        void send(nlohmann::json& data);
 
     private:
+
+        std::unordered_map<std::string, bool> lastSetChatControl;
 
         void onAdd(nlohmann::json& j);
         void onRemove(nlohmann::json& j);
@@ -121,8 +134,17 @@ namespace FPHelper {
         void onDisconnect(nlohmann::json& j);
         void process();
         void process(nlohmann::json& j);
-        std::string generateID();
+        PacketType getPacketType(const std::string& type);
+        EventType getEventType(const std::string& type);
+        static std::string generateID();
+        static std::string getSkinName();
 
     };
+
+    bool isOnlineFakePlayer(Player* pl);
+    bool isOnlineFakePlayer(const std::string& name);
+    bool isFakePlayer(const std::string& name);
+    FakePlayer* getFakePlayer(Player* pl);
+    FakePlayer* getFakePlayer(const std::string& name);
 
 }

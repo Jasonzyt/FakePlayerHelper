@@ -9,7 +9,7 @@ class LangPack {
 	std::string langType;
 	std::unordered_map<std::string, std::string> lang;
 	nlohmann::json default_lang{
-		{"zh-cn", {
+        {"zh-cn", {
             {"Overworld", "主世界"},
             {"Nether", "下界"},
             {"The End", "末路之地"},
@@ -30,7 +30,7 @@ class LangPack {
             {"fpws.invalid.skin", "无效的皮肤配置!它只能为steve/alex/random!已默认为steve"},
             {"fpws.wait.timeout", "等待WebSocket服务器响应超时"},
             {"fpws.unknown.packet.type", "未知的响应类型!"},
-            {"fpws.parse.json.err.format", "JSON解析失败: "},
+            {"fpws.parse.json.err", "JSON解析失败: "},
             {"fpws.version.msg.format", "FakePlayer软件版本: %s"},
             {"fpws.failed.send", "发送消息失败!"},
             {"fpcmd.root.desc", "管理假人"},
@@ -55,8 +55,8 @@ class LangPack {
             {"console.failed.add.fakeplayer.format", "添加失败: %s"},
             {"console.failed.remove.fakeplayer.format", "移除失败: %s"},
             {"console.found.new.fakeplayer.format", "发现了一个新的假人: %s"},
-            {"console.set.chat.control.enable.format", "已启用假人 %s 的聊天信息控制"},
-            {"console.set.chat.control.disable.format", "已禁用假人 %s 的聊天信息控制"},
+            {"console.enabled.chat.control.format", "假人 %s: 聊天控制已启用"},
+            {"console.disabled.chat.control.format", "假人 %s: 聊天控制已禁用"},
             {"console.join.info.format", "假人 %s 进入了游戏,位置: %s%s"},
             {"console.left.info.format", "假人 %s 退出了游戏,位置: %s%s"},
             {"console.summoner.left.kick", "由于设置了假人召唤者离开时移除假人,即将移除假人 %s"},
@@ -65,13 +65,15 @@ class LangPack {
             {"gamemsg.failed.add.fakeplayer.format", "§b[FPH]§r §c§l添加失败: %s"},
             {"gamemsg.failed.remove.fakeplayer.format", "§b[FPH]§r §c§l移除失败: %s"},
             {"gamemsg.found.new.fakeplayer.format", "§b[FPH]§r 发现了一个新的假人: %s"},
-            {"gamemsg.set.chat.control.format", "§b[FPH]§r 已开启假人 %s 聊天信息控制"},
+            {"gamemsg.enabled.chat.control.format", "§b[FPH]§r 假人 %s: 聊天控制已禁用"},
+            {"gamemsg.disabled.chat.control.format", "§b[FPH]§r 假人 %s: 聊天控制已启用"},
             {"gamemsg.join.info.format", "§b[FPH]§r 假人 %s 进入了游戏,位置: %s%s"},
             {"gamemsg.left.info.format", "§b[FPH]§r 假人 %s 退出了游戏,位置: %s%s"},
             {"gamemsg.summoner.left.kick", "§b[FPH]§r 由于服主设置了假人召唤者离开时移除假人,即将移除假人 %s"},
             {"gamemsg.ws.connected", "§b[FPH][WS]§r 假人WebSocket服务器已连接"},
-            {"gamemsg.ws.fp.version", "§b[FPH][WS]§r 假人软件版本: %s"}
-        },
+            {"gamemsg.ws.disconnected", "§b[FPH][WS]§e 假人WebSocket服务器连接已断开"},
+            {"gamemsg.ws.fp.version", "§b[FPH][WS]§r 假人软件版本: %s"},
+        }},
         {"en", {
             {"Overworld", "Overworld"},
             {"Nether", "Nether"},
@@ -93,7 +95,7 @@ class LangPack {
             {"fpws.invalid.skin", "Invalid skin config!It must be steve/alex/random!Has defaulted to steve."},
             {"fpws.wait.timeout", "Waiting for response timed out"},
             {"fpws.unknown.packet.type", "Unknown response type!"},
-            {"fpws.parse.json.err.format", "Can't parse JSON: "},
+            {"fpws.parse.json.err", "Can't parse JSON: "},
             {"fpws.version.msg.format", "FakePlayer software version: %s"},
             {"fpws.failed.send", "Failed to send WebSocket message!"},
             {"fpws.duplicate.name", "Deplicate FakePlayer name!"},
@@ -119,8 +121,8 @@ class LangPack {
             {"console.failed.add.fakeplayer.format", "§b[FPH]§r §c§lAdd unsuccessfully: %s"},
             {"console.failed.remove.fakeplayer.format", "§b[FPH]§r §c§lRemove unsuccessfully: %s"},
             {"console.found.new.fakeplayer.format", "Found a new FakePlayer: %s"},
-            {"console.set.chat.control.enable.format", "FakePlayer %s's chat message control is enabled"},
-            {"console.set.chat.control.disable.format", "FakePlayer %s's chat message control is disabled"},
+            {"console.enabled.chat.control.format", "FakePlayer %s: Chat control enabled"},
+            {"console.disabled.chat.control.format", "FakePlayer %s: Chat control disabled"},
             {"console.join.info.format", "FakePlayer %s joined,position: %s%s"},
             {"console.left.info.format", "FakePlayer %s left,position: %s%s"},
             {"console.summoner.left.kick", "Because the server owner has set removing FakePlayer when its summoner leaves, removing FakePlayer %s"},
@@ -128,14 +130,16 @@ class LangPack {
             {"gamemsg.successfully.remove.fakeplayer", "§b[FPH]§r Removed successfully!"},
             {"gamemsg.failed.add.fakeplayer.format", "§b[FPH]§r §c§lAdd unsuccessfully: %s"},
             {"gamemsg.failed.remove.fakeplayer.format", "§b[FPH]§r §c§lRemove unsuccessfully: %s"},
-            {"gamemsg.set.chat.control.disable.format", "FakePlayer %s's chat message control is disabled"},
+            {"gamemsg.enabled.chat.control.format", "§b[FPH]§r FakePlayer %s: Chat control disabled"},
+            {"gamemsg.disabled.chat.control.format", "§b[FPH]§r FakePlayer %s: Chat control enabled"},
             {"gamemsg.found.new.fakeplayer.format", "§b[FPH]§r Found a new FakePlayer: %s"},
-            {"gamemsg.set.chat.control.format", "§b[FPH]§r FakePlayer %s's chat message control is enable"},
-            {"gamemsg.join.info.format", "§b[FPH]§r FakePlayer %s joined,position: %s%s"},
-            {"gamemsg.left.info.format", "§b[FPH]§r FakePlayer %s left,position: %s%s"},
+            {"gamemsg.join.info.format", "§b[FPH]§r FakePlayer %s joined. Position: %s%s"},
+            {"gamemsg.left.info.format", "§b[FPH]§r FakePlayer %s left. Position: %s%s"},
             {"gamemsg.summoner.left.kick", "§b[FPH]§r Because the server owner has set removing FakePlayer when its summoner leaves, removing FakePlayer %s"},
-            {"gamemsg.ws.connected", "§b[FPH][WS]§r Successfully connected FakePlayer WebSocket server"}
-        }
+            {"gamemsg.ws.connected", "§b[FPH][WS]§r Successfully connected FakePlayer WebSocket server"},
+            {"gamemsg.ws.disconnected", "§b[FPH][WS]§e FakePlayer WebSocket server disconnected!"},
+            {"gamemsg.ws.fp.version", "§b[FPH][WS]§r FakePlayer software version: %s"},
+        }}
     };
 
 	inline void writeDefault(const std::string& fn) {
@@ -148,7 +152,7 @@ class LangPack {
 		nlohmann::json json;
 		auto lastSlash = fn.find_last_of('/');
 		auto lastBackslash = fn.find_last_of('\\');
-		fs::create_directories(fn.substr(0, max((lastSlash != std::string::npos ? lastSlash : 0),
+		fs::create_directories(fn.substr(0, std::max((lastSlash != std::string::npos ? lastSlash : 0),
 			(lastBackslash != std::string::npos ? lastBackslash : 0))));
 		std::fstream file(fn, std::ios::in | std::ios::app);
 		std::ostringstream oss;

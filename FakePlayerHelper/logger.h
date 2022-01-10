@@ -1,6 +1,11 @@
-#ifndef LOGGER_H
-#define LOGGER_H
-#include "pch.h"
+#pragma once
+#include <string_view>
+#include <iostream>
+#include <sstream>
+#include <ctime>
+#include <Windows.h>
+
+#if defined(BDS_V1_16)
 
 struct stdio_commit {
 	std::string_view prefix;
@@ -47,14 +52,14 @@ class OLogger {
 	bool color_print;
 	static constexpr std::string_view LVLNAME[5] = { "DEBUG]", "INFO]", "WARN]", "ERROR]", "FATAL]" };
 public:
-	Logger(COMMITER&& cm) : cmt(std::forward<COMMITER>(cm)) {
+	OLogger(COMMITER&& cm) : cmt(std::forward<COMMITER>(cm)) {
 		time_fmt = "%Y-%m-%d %H:%M:%S";
 		color_print = false;
 	}
-	Logger(COMMITER&& cm, bool color) : cmt(std::forward<COMMITER>(cm)), color_print(color) {
+	OLogger(COMMITER&& cm, bool color) : cmt(std::forward<COMMITER>(cm)), color_print(color) {
 		time_fmt = "%Y-%m-%d %H:%M:%S";
 	}
-	Logger(COMMITER&& cm, bool color, std::string tm_fmt) : cmt(std::forward<COMMITER>(cm)), color_print(color), 
+	OLogger(COMMITER&& cm, bool color, std::string tm_fmt) : cmt(std::forward<COMMITER>(cm)), color_print(color), 
 		time_fmt(tm_fmt) {}
 	template <typename A, typename B>
 	static inline void __helper(A& x, B&& y) {
@@ -97,7 +102,7 @@ public:
 	}
 };
 
-#if defined(BDS_LATEST)
+#elif defined(BDS_LATEST)
 
 #include <Global.h>
 
@@ -138,7 +143,5 @@ inline void lllog(Args... args) {
 			break;
 	}
 }
-
-#endif
 
 #endif

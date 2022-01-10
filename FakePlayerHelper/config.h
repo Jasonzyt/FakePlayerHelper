@@ -12,19 +12,18 @@ namespace FPHelper {
     public:
         std::string skin = ""; // steve/alex/random
         std::string lang = "";
-        bool allow_tp = true;
-        bool kick_fp = false; // Kick fakeplayer when summoner left
+        bool allowTeleport = true;
+        bool kickFakePlayer = false; // Kick fakeplayer when summoner left
         //bool remove_fp = false; // Remove fakeplayer when disconnect
-        unsigned int max_global_fp = 0; // 0 = Unlimited
-        unsigned int max_player_fp = 0; // 0 = Unlimited
-        unsigned short ws_port = 0;
+        unsigned int maxGlobalFakePlayers = 0; // 0 = Unlimited
+        unsigned int maxPlayerFakePlayers = 0; // 0 = Unlimited
+        unsigned short wsPort = 0;
         struct Permission
         {
             enum : char { ALL, Specified, ConsoleOnly } type;
             std::vector<xuid_t> allow_list;
         } perm;
-    public:
-        Config() {}
+
         inline void init()
         {
             if (fs::exists(FPH_CONFIG))
@@ -53,7 +52,7 @@ namespace FPHelper {
                 PRINT<ERROR, RED>("Can't open config file: ", FPH_CONFIG);
                 return false;
             }
-            fstm << setw(4) << json;
+            fstm << std::setw(4) << json;
             fstm.close();
         }
         inline void parseJson()
@@ -71,27 +70,27 @@ namespace FPHelper {
             if (!json.count("AllowTeleport") || !json["AllowTeleport"].is_boolean()) {
                 json["AllowTeleport"] = true;
             }
-            allow_tp = json["AllowTeleport"].get<bool>();
+            allowTeleport = json["AllowTeleport"].get<bool>();
 
             if (!json.count("KickFakePlayer") || !json["KickFakePlayer"].is_boolean()) {
                 json["KickFakePlayer"] = false;
             }
-            kick_fp = json["KickFakePlayer"].get<bool>();
+            kickFakePlayer = json["KickFakePlayer"].get<bool>();
 
             if (!json.count("MaxGlobalFakePlayer") || !json["MaxGlobalFakePlayer"].is_number_unsigned()) {
                 json["MaxGlobalFakePlayer"] = 10;
             }
-            max_global_fp = json["MaxGlobalFakePlayer"].get<unsigned int>();
+            maxGlobalFakePlayers = json["MaxGlobalFakePlayer"].get<unsigned int>();
 
             if (!json.count("MaxPlayerFakePlayer") || !json["MaxPlayerFakePlayer"].is_number_unsigned()) {
                 json["MaxPlayerFakePlayer"] = 5;
             }
-            max_player_fp = json["MaxPlayerFakePlayer"].get<unsigned int>();
+            maxPlayerFakePlayers = json["MaxPlayerFakePlayer"].get<unsigned int>();
 
             if (!json.count("WebSocketPort") || !json["WebSocketPort"].is_number_integer()) {
                 json["WebSocketPort"] = 54321;
             }
-            ws_port = json["WebSocketPort"].get<unsigned short>();
+            wsPort = json["WebSocketPort"].get<unsigned short>();
 
             if (!json.count("Permission") || !json["Permission"].is_object()) {
                 json["Permission"] = nlohmann::json{{"Allow", "ALL"}, {"Specified", {114514, 1919810}}};
@@ -112,6 +111,8 @@ namespace FPHelper {
             if (perm.type == Permission::Specified) {
                 perm.allow_list = json["Permission"]["Specified"].get<std::vector<xuid_t>>();
             }
+
+            writeJson();
         }
 
     };

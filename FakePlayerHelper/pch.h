@@ -17,8 +17,7 @@
 
 #include <cstdio>
 #include <ctime>
-// LiteLoader
-#include <liteloader.h>
+
 #include "build.h"
 #include "seh_excpetion.h"
 
@@ -32,7 +31,7 @@
     #define BDS_V1_16
 #endif
 #if defined(BDS_V1_16)
-	#define PRINT coutp.p
+	#define PRINT FPHelper::coutp.p
 	#pragma comment(lib,"./LLSDK_1.16/LiteLoader.lib")
 #elif defined(BDS_LATEST)
 	#define PRINT lllog
@@ -42,6 +41,9 @@
 	#pragma comment(lib,"./LLSDK/Lib/bedrock_server_var.lib")
 #endif
 #pragma warning(disable:4996)
+#pragma warning(disable:26812)
+
+#include "Logger.h"
 
 using VA = unsigned long long;
 using RVA = unsigned int; 
@@ -54,13 +56,13 @@ template <typename COMMITER>
 class OLogger;
 class Level;
 struct stdio_commit;
+class LangPack;
+namespace fs = std::filesystem;
 namespace FPHelper
 {
-	namespace fs = std::filesystem;
 	// 类声明
 	class Config;
 	class WebSocket;
-	class LangPack;
 	// 外部变量
     extern void* wlfile;
 #if defined(BDS_V1_16)
@@ -71,8 +73,22 @@ namespace FPHelper
 	extern LangPack* lpk;
 	extern Level* level;
 
-	const std::string FPH_VERSION  = "1.0.1";
-	const std::string FPH_VERTYPE  = "Beta";
+	static const struct {
+		const enum : int { Dev, Beta, Release } tag = Beta;
+		const int major = 1;
+		const int minor = 1;
+		const int patch = 0;
+		inline std::string toString() const {
+			auto result = std::to_string(major) + "." + 
+						  std::to_string(minor) + "." + 
+						  std::to_string(patch);
+			switch (tag) {
+			case Dev: result += "-Dev"; break;
+			case Beta: result += "-Beta"; break;
+			}
+			return result;
+		}
+	} VERSION;
 	const std::string FPH_FOLDER   = "./plugins/FakePlayerHelper";
 	const std::string FPH_CONFIG   = "./plugins/FakePlayerHelper/config.json";
 	const std::string FPH_LANGPACK = "./plugins/FakePlayerHelper/langpack.json";
