@@ -144,25 +144,21 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Command.cpp" />
-    <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="fakeplayer.cpp" />
-    <ClCompile Include="mod.cpp" />
+    <ClCompile Include="DLLMain.cpp" />
+    <ClCompile Include="FakePlayer.cpp" />
+    <ClCompile Include="Mod.cpp" />
     <ClCompile Include="pch.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="build.h" />
     <ClInclude Include="Config.h" />
-    <ClInclude Include="fakeplayer.h" />
-    <ClInclude Include="langpack.h" />
-    <ClInclude Include="logger.h" />
-    <ClInclude Include="mass.h" />
-    <ClInclude Include="myPacket.h" />
+    <ClInclude Include="FakePlayer.h" />
+    <ClInclude Include="LangPack.h" />
+    <ClInclude Include="Logger.h" />
+    <ClInclude Include="Mess.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="seh_excpetion.h" />
-    <ClInclude Include="TextPacket.h" />
-    <ClInclude Include="threadpool.h" />
-    <ClInclude Include="Types.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="langpack.json" />

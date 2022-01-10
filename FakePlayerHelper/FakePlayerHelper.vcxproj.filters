@@ -21,13 +21,13 @@
     <ClCompile Include="pch.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="dllmain.cpp">
+    <ClCompile Include="DLLMain.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="mod.cpp">
+    <ClCompile Include="Mod.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="fakeplayer.cpp">
+    <ClCompile Include="FakePlayer.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Command.cpp">
@@ -38,25 +38,16 @@
     <ClInclude Include="pch.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="logger.h">
+    <ClInclude Include="Logger.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="Config.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="fakeplayer.h">
+    <ClInclude Include="FakePlayer.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="threadpool.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="mass.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="langpack.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="myPacket.h">
+    <ClInclude Include="LangPack.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
@@ -65,13 +56,10 @@
     <ClInclude Include="seh_excpetion.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="TextPacket.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="build.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Types.h">
+    <ClInclude Include="Mess.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

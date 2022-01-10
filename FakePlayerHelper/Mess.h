@@ -12,12 +12,13 @@
 #include <MC/Player.hpp>
 #include <MC/Level.hpp>
 #include <MC/Certificate.hpp>
+#include <MC/ExtendedCertificate.hpp>
 #include <HookAPI.h>
 #endif
 #include "Logger.h"
 #include "LangPack.h"
 
-struct Packet;
+class Packet;
 
 struct RelativeFloat 
 {
@@ -78,11 +79,11 @@ namespace FPHelper
         });
         return player_list;
     }
-    inline Player* getPlayerByNameTag(const std::string& name) {
+    inline std::string getRealName(Player* pl);
+    inline Player* getPlayerByRealName(const std::string& name) {
         Player* player = nullptr;
         forEachPlayer([&](Player& pl) -> bool {
-            if (do_hash((&pl)->getNameTag()) == do_hash(name))
-            {
+            if (getRealName(&pl) == name) {
                 player = &pl;
                 return false;
             }
@@ -148,14 +149,24 @@ namespace FPHelper
     }
     inline xuid_t getXuid(Player* pl) {
 #if defined(BDS_V1_16)
-        std::string xuid_str = SymCall(
+        std::string xuidStr = SymCall(
             "?getXuid@ExtendedCertificate@@SA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@"
             "@std@@AEBVCertificate@@@Z", std::string, void*)(getCert(pl));
 #elif defined(BDS_LATEST)
-            std::string xuid_str = ExtendedCertificate::getXuid(pl->getCertificate());
+        std::string xuidStr = ExtendedCertificate::getXuid(pl->getCertificate());
 #endif
-        return atoll(xuid_str.c_str());
+        return atoll(xuidStr.c_str());
     }
+    inline std::string getRealName(Player* pl) {
+#if defined(BDS_V1_16)
+        return SymCall(
+            "?getIdentityName@ExtendedCertificate@@SA?AV?$basic_string@DU?$char_traits@D@std@@V?$"
+            "allocator@D@2@@std@@AEBVCertificate@@@Z", std::string, void*)(getCert(pl));
+#elif defined(BDS_LATEST)
+        return ExtendedCertificate::getIdentityName(pl->getCertificate());
+#endif
+    }
+
     inline void teleport(Actor* actor, Vec3 dst, int dim) {
 #if defined(BDS_V1_16)
         try {

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Config.h"
+#include "LangPack.h"
 #include "Mess.h"
 #if defined(BDS_V1_16)
 #include <api/commands.h>
@@ -54,6 +55,8 @@ namespace FPHelper {
 
 #if defined(BDS_V1_16)
 
+void subscribeCommandRegistry() {
+}
 #elif defined(BDS_LATEST)
 
 #define TYPE_SOFT_ENUM CommandParameterDataType::SOFT_ENUM
@@ -148,20 +151,22 @@ public:
             ARG_ENUM(op, "List", "List"),
             ARG_OPTION(val, val_set, "Display offline FakePlayers(default false)")
         );
-        registry->registerOverload<FpCommand>(
-            "fp",
-            ARG_ENUM(op, "Teleport", "Teleport"),
-            ARG(cPlayer, "FakePlayer"),
-            ARG(cActor, "Dst entity")
-        );
-        registry->registerOverload<FpCommand>(
-            "fp",
-            ARG_ENUM(op, "Teleport", "Teleport"),
-            ARG(cPlayer, "FakePlayer"),
-            ARG(dstPos, "Dst"),
-            makeOptional<TYPE_ENUM>(
-                &FpCommand::dim, "Dimension", "Dimension", &FpCommand::dim_set)
-        );
+        if (cfg->allowTeleport) {
+            registry->registerOverload<FpCommand>(
+                "fp",
+                ARG_ENUM(op, "Teleport", "Teleport"),
+                ARG(cPlayer, "FakePlayer"),
+                ARG(cActor, "Dst entity")
+            );
+            registry->registerOverload<FpCommand>(
+                "fp",
+                ARG_ENUM(op, "Teleport", "Teleport"),
+                ARG(cPlayer, "FakePlayer"),
+                ARG(dstPos, "Dst"),
+                makeOptional<TYPE_ENUM>(
+                    &FpCommand::dim, "Dimension", "Dimension", &FpCommand::dim_set)
+            );
+        }
 
     }
 
@@ -169,6 +174,7 @@ public:
 
 void subscribeCommandRegistry() {
     Event::RegCmdEvent::subscribe([&](Event::RegCmdEvent ev) {
+        PRINT(lpk->localize("event.register.cmd"));
         FpCommand::setup(ev.mCommandRegistry);
         return true;
     });

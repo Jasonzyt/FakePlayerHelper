@@ -66,7 +66,7 @@ namespace FPHelper
 	// 外部变量
     extern void* wlfile;
 #if defined(BDS_V1_16)
-	extern OLogger<stdio_commit> coutp;
+	extern OLogger<stdio_commit*> coutp;
 #endif
 	extern Config* cfg;
 	extern WebSocket* fpws;
@@ -89,9 +89,9 @@ namespace FPHelper
 			return result;
 		}
 	} VERSION;
-	const std::string FPH_FOLDER   = "./plugins/FakePlayerHelper";
-	const std::string FPH_CONFIG   = "./plugins/FakePlayerHelper/config.json";
-	const std::string FPH_LANGPACK = "./plugins/FakePlayerHelper/langpack.json";
+	const std::string FPH_FOLDER   = "./plugins/FakePlayerHelper/";
+	const std::string FPH_CONFIG   = FPH_FOLDER + "config.json";
+	const std::string FPH_LANGPACK = FPH_FOLDER + "langpack.json";
 }
 
 #endif //PCH_H
