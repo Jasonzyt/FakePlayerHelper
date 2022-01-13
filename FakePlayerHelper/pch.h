@@ -27,8 +27,8 @@
 #undef min
 #undef ERROR
 #if defined(TEST_VERSION)
-    //#define BDS_LATEST
-    #define BDS_V1_16
+    #define BDS_LATEST
+    //#define BDS_V1_16
 #endif
 #if defined(BDS_V1_16)
 	#define PRINT FPHelper::coutp.p
@@ -47,7 +47,7 @@
 
 using VA = unsigned long long;
 using RVA = unsigned int; 
-typedef unsigned long long xuid_t;
+typedef std::string xuid_t;
 typedef unsigned long long u64;
 typedef unsigned int u32;
 typedef unsigned short u16;
@@ -58,8 +58,6 @@ class Level;
 struct stdio_commit;
 class LangPack;
 namespace fs = std::filesystem;
-namespace FPHelper
-{
 	// 类声明
 	class Config;
 	class WebSocket;
@@ -92,6 +90,5 @@ namespace FPHelper
 	const std::string FPH_FOLDER   = "./plugins/FakePlayerHelper/";
 	const std::string FPH_CONFIG   = FPH_FOLDER + "config.json";
 	const std::string FPH_LANGPACK = FPH_FOLDER + "langpack.json";
-}
 
 #endif //PCH_H

@@ -3,18 +3,14 @@
 #include "pch.h"
 #include "nlohmann/json.hpp"
 
-namespace FPHelper {
-
-    template<typename ... Args>
-    inline std::string format(const std::string& format, Args... args);
-
-}
+template<typename ... Args>
+inline std::string format(const std::string& format, Args... args);
 
 class LangPack {
 
-	std::string langType;
-	std::unordered_map<std::string, std::string> lang;
-	nlohmann::json default_lang{
+    std::string langType;
+    std::unordered_map<std::string, std::string> lang;
+    nlohmann::json default_lang{
         {"zh-cn", {
             {"Overworld", "主世界"},
             {"Nether", "下界"},
@@ -46,10 +42,10 @@ class LangPack {
             {"fpcmd.tp.dim", "维度(overworld|nether|end)"},
             {"fpcmd.tp.successfully.format", "传送假人 %s 到 %s%s 成功!"},
             {"fpcmd.tp.unsuccessfully.format", "传送假人 %s 到 %s%s 失败!"},
-            {"fpcmd.cant_find_fp", "找不到目标假人,可能是未连接!"},
-            {"fpcmd.selector.not_matched", "目标选择器无匹配!"},
-            {"fpcmd.global_limit.exceed", "全局假人数量已达到上限!"},
-            {"fpcmd.player_limit.exceed", "你召唤的假人数量已达到上限!"},
+            {"fpcmd.cannot.find.fp", "找不到目标假人,可能是未连接!"},
+            {"fpcmd.selector.not.matched", "目标选择器无匹配!"},
+            {"fpcmd.global.limit.exceed", "全局假人数量已达到上限!"},
+            {"fpcmd.player.limit.exceed", "你召唤的假人数量已达到上限!"},
             {"fpcmd.api.unfinished", "你现在不能使用此命令,接口还未完成"},
             {"fpcmd.success", "执行成功!"},
             {"fpcmd.fail.format", "执行失败: %s"},
@@ -112,10 +108,10 @@ class LangPack {
             {"fpcmd.tp.dim", "Dimension(overworld|nether|end)"},
             {"fpcmd.tp.successfully.format", "Teleport FakePlayer %s to %s%s successfully!"},
             {"fpcmd.tp.unsuccessfully.format", "Teleport FakePlayer %s to %s%s unsuccessfully!"},
-            {"fpcmd.cant_find_fp", "Cannot find target FakePlayer.Maybe it is not connected."},
-            {"fpcmd.selector.not_matched", "No match for Target Selector"},
-            {"fpcmd.global_limit.exceed", "The number of global FakePlayers has reached the upper limit!"},
-            {"fpcmd.player_limit.exceed", "The number of FakePlayers you summoned has reached the upper limit!"},
+            {"fpcmd.cannot.find.fp", "Cannot find target FakePlayer.Maybe it is not connected."},
+            {"fpcmd.selector.not.matched", "No match for Target Selector"},
+            {"fpcmd.global.limit.exceed", "The number of global FakePlayers has reached the upper limit!"},
+            {"fpcmd.player.limit.exceed", "The number of FakePlayers you summoned has reached the upper limit!"},
             {"fpcmd.api.unfinished", "You cannot use this command because API unfinished yet"},
             {"fpcmd.success", "Execution succeed!"},
             {"fpcmd.fail.format", "Execution failed: %s"},
@@ -148,96 +144,96 @@ class LangPack {
         }}
     };
 
-	inline void writeDefault(const std::string& fn) {
-		std::fstream file(fn, std::ios::out | std::ios::ate);
-		file << std::setw(4) << default_lang;
-		file.close();
-	}
+    inline void writeDefault(const std::string& fn) {
+        std::fstream file(fn, std::ios::out | std::ios::ate);
+        file << std::setw(4) << default_lang;
+        file.close();
+    }
 
-	inline void init(const std::string& fn, const std::string& language) {
-		nlohmann::json json;
-		auto lastSlash = fn.find_last_of('/');
-		auto lastBackslash = fn.find_last_of('\\');
-		fs::create_directories(fn.substr(0, std::max((lastSlash != std::string::npos ? lastSlash : 0),
-			(lastBackslash != std::string::npos ? lastBackslash : 0))));
-		std::fstream file(fn, std::ios::in | std::ios::app);
-		std::ostringstream oss;
-		bool flag = false;
-		oss << file.rdbuf();
-		file.close();
-		if (oss.str().empty()) {
-			writeDefault(fn);
-		}
+    inline void init(const std::string& fn, const std::string& language) {
+        nlohmann::json json;
+        auto lastSlash = fn.find_last_of('/');
+        auto lastBackslash = fn.find_last_of('\\');
+        fs::create_directories(fn.substr(0, std::max((lastSlash != std::string::npos ? lastSlash : 0),
+            (lastBackslash != std::string::npos ? lastBackslash : 0))));
+        std::fstream file(fn, std::ios::in | std::ios::app);
+        std::ostringstream oss;
+        bool flag = false;
+        oss << file.rdbuf();
+        file.close();
+        if (oss.str().empty()) {
+            writeDefault(fn);
+        }
 
-		try {
-			json = nlohmann::json::parse(oss.str());
-		}
-		catch (nlohmann::detail::exception e) {
-			if (e.id != 101) {
-				PRINT<ERROR, RED>("Can't parse LangPack json: ", e.what());
-			}
-			PRINT("Try rewriting langpack file...");
-			writeDefault(fn);
-			if (!default_lang.count(language)) {
-				PRINT<WARN, YELLOW>("Unknown language name, please check config file! Default English");
-				lang = default_lang.at("en").get<std::unordered_map<std::string, std::string>>();
-			}
+        try {
+            json = nlohmann::json::parse(oss.str());
+        }
+        catch (nlohmann::detail::exception e) {
+            if (e.id != 101) {
+                PRINT<ERROR, RED>("Can't parse LangPack json: ", e.what());
+            }
+            PRINT("Try rewriting langpack file...");
+            writeDefault(fn);
+            if (!default_lang.count(language)) {
+                PRINT<WARN, YELLOW>("Unknown language name, please check config file! Default English");
+                lang = default_lang.at("en").get<std::unordered_map<std::string, std::string>>();
+            }
             else {
                 lang = default_lang.at(language).get<std::unordered_map<std::string, std::string>>();
             }
-			return;
-		}
+            return;
+        }
 
-		if (!json.count(language)) {
-			PRINT<WARN, YELLOW>("Unknown language name, please check config file! Default English");
-			lang = default_lang.at("en").get<std::unordered_map<std::string, std::string>>();
-			return;
-		}
-		/*
-		bool modified = false;
-		for (auto it = default_lang["en"].begin();
-			it != default_lang.end(); it++) {
-			if (!json.count(it.key())) {
-				modified = true;
-				if (language == "zh-cn") {
-					json.at(language)[it.key()] = default_lang["zh-cn"].at(it.key());
-				}
-				else {
-					json.at(language)[it.key()] = it.value();
-				}
-			}
-		}
-		if (modified) {
-			std::fstream file(fn, std::ios::out | std::ios::ate);
-			file << std::setw(4) << json;
-			file.close();
-		}*/
-		lang = json.at(language).get<std::unordered_map<std::string, std::string>>();
-	}
+        if (!json.count(language)) {
+            PRINT<WARN, YELLOW>("Unknown language name, please check config file! Default English");
+            lang = default_lang.at("en").get<std::unordered_map<std::string, std::string>>();
+            return;
+        }
+        /*
+        bool modified = false;
+        for (auto it = default_lang["en"].begin();
+            it != default_lang.end(); it++) {
+            if (!json.count(it.key())) {
+                modified = true;
+                if (language == "zh-cn") {
+                    json.at(language)[it.key()] = default_lang["zh-cn"].at(it.key());
+                }
+                else {
+                    json.at(language)[it.key()] = it.value();
+                }
+            }
+        }
+        if (modified) {
+            std::fstream file(fn, std::ios::out | std::ios::ate);
+            file << std::setw(4) << json;
+            file.close();
+        }*/
+        lang = json.at(language).get<std::unordered_map<std::string, std::string>>();
+    }
 
 public:
 
-	LangPack(const std::string& file, const std::string& language) {
-		langType = language;
-		init(file, language);
-	}
+    LangPack(const std::string& file, const std::string& language) {
+        langType = language;
+        init(file, language);
+    }
 
-	inline std::string get(const std::string& key) {
-		if (lang.count(key)) {
-			return lang.at(key);
-		}
-		else if (default_lang.count(langType) && default_lang[langType].count(key)) {
-			return default_lang[langType][key].get<std::string>();
-		}
-		PRINT<WARN, YELLOW>("Could not find the translation for ", key);
-		return key;
-	}
+    inline std::string get(const std::string& key) {
+        if (lang.count(key)) {
+            return lang.at(key);
+        }
+        else if (default_lang.count(langType) && default_lang[langType].count(key)) {
+            return default_lang[langType][key].get<std::string>();
+        }
+        PRINT<WARN, YELLOW>("Could not find the translation for ", key);
+        return key;
+    }
 
-	template<typename ... Args>
-	inline std::string localize(const std::string& key, Args... args) {
-		return FPHelper::format(this->get(key), args...);
-	}
-	
+    template<typename ... Args>
+    inline std::string localize(const std::string& key, Args... args) {
+        return FPHelper::format(this->get(key), args...);
+    }
+    
 };
 
 #endif // !LANGPACK_H
