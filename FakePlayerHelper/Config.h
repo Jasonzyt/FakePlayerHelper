@@ -2,6 +2,7 @@
 #define CONFIG_H
 #include "pch.h"
 #include <nlohmann/json.hpp>
+#include <api/types/types.h>
 
 class Config {
     

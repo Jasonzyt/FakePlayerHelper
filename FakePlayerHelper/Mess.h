@@ -83,21 +83,17 @@ inline Player* getPlayerByRealName(const std::string& name) {
             player = &pl;
             return false;
         }
+        return true;
     });
     return player;
 }
+struct TextPacket {
+};
 inline void sendText(Player* pl, const std::string& text, TextType tp = TextType::RAW) {
 #if defined(BDS_V1_16)
-    Packet* pkt;
-    SymCall(
-        "?createPacket@MinecraftPackets@@SA?AV?$shared_ptr@VPacket@@@std@@W4MinecraftPacketIds@@@Z",
-        void*, Packet**, int)(&pkt, 9);  
-    std::string* src = new std::string("Server");
-    std::string* msg = new std::string(text);
-    dAccess<char, 32>(pkt) = (char)tp;
-    dAccess<std::string*, 40>(pkt) = src;
-    dAccess<std::string*, 80>(pkt) = msg;
-    pl->sendNetworkPacket(*pkt);
+    auto pkt = SymCall("?createSystemMessage@TextPacket@@SA?AV1@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z", TextPacket, const std::string&)(text);
+    pl->sendNetworkPacket(*((Packet*)&pkt));
+    
 #elif defined(BDS_LATEST)
     pl->sendTextPacket(text, tp);
 #endif
@@ -107,7 +103,7 @@ inline void sendTextAll(const std::string& text, TextType tp = TextType::RAW)
     forEachPlayer([&](Player& pl) -> bool {
         Player* player = &pl;
         if (!player) return false;
-        sendText(player, text, tp);
+        //sendText(player, text, tp);
         return true;
     });
 }
@@ -137,11 +133,11 @@ inline Certificate* getCert(Player* pl) {
 }
 inline xuid_t getXuid(Player* pl) {
 #if defined(BDS_V1_16)
-    return SymCall(
+    return std::stoull(SymCall(
         "?getXuid@ExtendedCertificate@@SA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@"
-        "@std@@AEBVCertificate@@@Z", std::string, void*)(getCert(pl));
+        "@std@@AEBVCertificate@@@Z", std::string, void*)(getCert(pl)));
 #elif defined(BDS_LATEST)
-    return ExtendedCertificate::getXuid(pl->getCertificate());
+    return pl->getXuid();
 #endif
 }
 inline std::string getRealName(Player* pl) {

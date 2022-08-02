@@ -19,11 +19,11 @@ class CommandPosition {
 public:
 	inline Vec3* getPosition(const CommandOrigin& ori)
 	{
-		const Vec3* unk1 = new Vec3;
-		Vec3 unk2;
+        Vec3 unk1{};
+        Vec3 unk2{};
 		return SymCall(
 			"?getPosition@CommandPosition@@QEBA?AVVec3@@AEBVCommandOrigin@@AEBV2@@Z",
-			Vec3*, CommandPosition*, const Vec3&, const CommandOrigin&, Vec3*)(this, *unk1, ori, &unk2);
+			Vec3*, CommandPosition*, const Vec3&, const CommandOrigin&, Vec3*)(this, unk1, ori, &unk2);
 	}
 	inline BlockPos* getBlockPos(const CommandOrigin& ori)
 	{

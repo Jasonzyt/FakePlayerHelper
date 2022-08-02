@@ -5,6 +5,7 @@
 #include <ThreadPool.h>
 #if defined(BDS_V1_16)
 #include <mc/Player.h>
+#include <api/types/types.h>
 #elif defined(BDS_LATEST)
 #include <MC/Player.hpp>
 #endif
@@ -37,7 +38,7 @@ public:
         const std::string& name,
         bool allowChatControl,
         const std::string& sname,
-        xuid_t sxuid = "") {
+        xuid_t sxuid = 0) {
         this->pl = pl;
         this->name = name;
         this->allowChatControl = allowChatControl;
@@ -49,6 +50,11 @@ public:
     void setOnline();
     void setOffline();
     void setPlayerPtr(Player* pl);
+
+    // Send request, not a synchronized function
+    void connect();
+    void disconnect();
+    void setChatControl(bool v);
 
 };
 
@@ -117,6 +123,7 @@ public:
     void stop();
     void tick();
     void add(std::unique_ptr<FakePlayer> fp);
+    void connect(FakePlayer* fp);
     void remove(FakePlayer* fp);
     void removeAll();
     void del(FakePlayer* fp);
@@ -128,13 +135,13 @@ public:
 private:
 
     std::unordered_map<std::string, bool> lastSetChatControl;
-    std::vector<std::string> resetSummoner;
+    std::unordered_map<std::unique_ptr<FakePlayer>, FakePlayer::Summoner> setSummoner;
 
     void onAdd(nlohmann::json& j);
     void onRemove(nlohmann::json& j);
     void onConnect(nlohmann::json& j);
     void onDisconnect(nlohmann::json& j);
-    void process();
+    void poll();
     void process(nlohmann::json& j);
     PacketType getPacketType(const std::string& type);
     EventType getEventType(const std::string& type);
@@ -148,3 +155,5 @@ bool isOnlineFakePlayer(const std::string& name);
 bool isFakePlayer(const std::string& name);
 FakePlayer* getFakePlayer(Player* pl);
 FakePlayer* getFakePlayer(const std::string& name);
+std::vector<FakePlayer*> getOnlineFakePlayers();
+std::pair<std::vector<FakePlayer*>, std::vector<FakePlayer*>> getFakePlayersCategorized();

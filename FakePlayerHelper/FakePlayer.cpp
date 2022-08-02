@@ -16,6 +16,19 @@ void FakePlayer::setOffline() {
 void FakePlayer::setPlayerPtr(Player* pl) {
     this->pl = pl;
 }
+void FakePlayer::connect() {
+    if (!online) {
+        fpws->connect(this);
+    }
+}
+void FakePlayer::disconnect() {
+    if (online) {
+        fpws->remove(this);
+    }
+}
+void FakePlayer::setChatControl(bool v) {
+    fpws->setChatControl(this, v);
+}
 
 // class WebSocket
 WebSocket::WebSocket(): pool(std::thread::hardware_concurrency()) {
@@ -30,7 +43,7 @@ void WebSocket::start() {
         reconnectCount = 0;
         PRINT(lpk->localize("fpws.connected"));
         sendTextAll(lpk->localize("gamemsg.ws.connected"));
-        process();
+        poll();
         getVersion();
         sync();
     }
@@ -66,23 +79,22 @@ void WebSocket::stop() { // Not used
 
 void WebSocket::tick() {
     if (connected) {
-        std::lock_guard<std::mutex> lck(mtx);
-        if (++syncTimer >= 2400) {
+        if (++syncTimer >= 200) {
             syncTimer = 0;
             sync();
         }
+        std::lock_guard<std::mutex> lck(mtx);
         std::vector<std::string> del;
         for (auto& [id, t] : timer) {
             if (t == -1) { // Received
                 if (resp.count(id) && resp[id]) {
                     process(*resp[id]);
                 }
-                del.push_back(id);
             }
             else if (++t >= 100) { // Timeout
                 PRINT<ERROR, RED>(lpk->localize("fpws.wait.timeout"));
-                del.push_back(id);
             }
+            del.push_back(id);
         }
         for (auto& id : del) {
             timer.erase(id);
@@ -93,20 +105,30 @@ void WebSocket::tick() {
 
 void WebSocket::add(std::unique_ptr<FakePlayer> fp) {
     std::lock_guard<std::mutex> lck(mtx);
+    if (isFakePlayer(fp->name)) {
+        connect(fp.get());
+        return;
+    }
     if (connected) {
         nlohmann::json j, dat;
         j["id"] = generateID();
-        if (isFakePlayer(fp->name)) {
-            j["type"] = "connect";
-            dat["name"] = fp->name;
-        }
-        else {
-            j["type"] = "add";
-            dat["name"] = fp->name;
-            dat["skin"] = getSkinName();
-            dat["allowChatControl"] = fp->allowChatControl;
-            fakePlayers.emplace(fp->name, std::move(fp));
-        }
+        j["type"] = "add";
+        dat["name"] = fp->name;
+        dat["skin"] = getSkinName();
+        dat["allowChatControl"] = fp->allowChatControl;
+        fakePlayers.emplace(fp->name, std::move(fp));
+        j["data"] = dat;
+        send(j);
+    }
+}
+
+void WebSocket::connect(FakePlayer* fp) {
+    std::lock_guard<std::mutex> lck(mtx);
+    if (connected) {
+        nlohmann::json j, dat;
+        j["id"] = generateID();
+        j["type"] = "connect";
+        dat["name"] = fp->name;
         j["data"] = dat;
         send(j);
     }
@@ -120,7 +142,6 @@ void WebSocket::remove(FakePlayer* fp) {
         j["type"] = "disconnect";
         dat["name"] = fp->name;
         j["data"] = dat;
-        resetSummoner.push_back(fp->name);
         send(j);
     }
 }
@@ -137,7 +158,7 @@ void WebSocket::removeAll() {
 
 void WebSocket::del(FakePlayer* fp) {
     std::lock_guard<std::mutex> lck(mtx);
-    if (connected && isFakePlayer(fp->name)) {
+    if (connected) {
         nlohmann::json j, dat;
         j["id"] = generateID();
         j["type"] = "remove";
@@ -185,7 +206,9 @@ void WebSocket::send(nlohmann::json& data) {
     if (connected) {
         timer[data["id"]] = 0;
         resp[data["id"]] = nullptr;
-        ws->send(data.dump());
+        auto str = data.dump();
+        PRINT<DEBUG, BLUE>("-> ", str);
+        ws->send(str);
     }
 }
 
@@ -208,16 +231,34 @@ void WebSocket::onRemove(nlohmann::json& data) {
     }
 }
 
-void WebSocket::onConnect(nlohmann::json& data) {}
+void WebSocket::onConnect(nlohmann::json& data) {
+    std::lock_guard<std::mutex> lck(mtx);
+    if (connected) {
+        if (!isFakePlayer(data["data"]["name"])) {
+            fakePlayers.emplace(data["data"]["name"],
+                                std::make_unique<FakePlayer>(nullptr, data["data"]["name"], true, "[Unknown]"));
+        }
+        else {
+            //fakePlayers[data["data"]["name"]]->setOnline(); 
+        }
+    }
+}
 
-void WebSocket::onDisconnect(nlohmann::json& data) {}
+void WebSocket::onDisconnect(nlohmann::json& data) {
+    std::lock_guard<std::mutex> lck(mtx);
+    if (connected) {
+        if (isFakePlayer(data["data"]["name"])) {
+            fakePlayers[data["data"]["name"]]->setOffline();
+        }
+    }
+}
 
-void WebSocket::process() {
+void WebSocket::poll() {
     pool.enqueue([&]() {
         while (ws->getReadyState() != easywsclient::WebSocket::CLOSED) {
             ws->poll(20); // If this number is too small, the CPU usage will be high.
             ws->dispatch([&](const std::string& msg) {
-                std::lock_guard<std::mutex> lck(mtx);
+                PRINT<DEBUG, GREEN>("<- ", msg);
                 if (msg.empty()) {
                     return;
                 }
@@ -226,10 +267,12 @@ void WebSocket::process() {
                     j = nlohmann::json::parse(msg);
                 }
                 catch (nlohmann::json::parse_error& e) {
+                    mtx.lock();
                     PRINT<ERROR, RED>(lpk->localize("fpws.parse.json.err"), e.what());
+                    mtx.unlock();
                     return;
                 }
-                if (j.count("event")) {
+                if (j.contains("event")) {
                     switch (getEventType(j["event"])) {
                     case EventType::Connect:
                         onConnect(j);
@@ -246,17 +289,18 @@ void WebSocket::process() {
                     }
                     return;
                 }
+                std::lock_guard<std::mutex> lck(mtx);
                 resp[j["id"]] = std::make_unique<nlohmann::json>(j);
                 timer[j["id"]] = -1;
             });
-            connected = false;
-            PRINT<WARN, YELLOW>(lpk->localize("fpws.disconnected"));
-            sendTextAll(lpk->localize("gamemsg.ws.disconnected"));
-            ws = nullptr;
-            std::this_thread::sleep_for(std::chrono::seconds(5));
-            PRINT(lpk->localize("fpws.try.reconnect"));
-            start();
         }
+        connected = false;
+        PRINT<WARN, YELLOW>(lpk->localize("fpws.disconnected"));
+        sendTextAll(lpk->localize("gamemsg.ws.disconnected"));
+        ws = nullptr;
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+        PRINT(lpk->localize("fpws.try.reconnect"));
+        start();
     });
 }
 
@@ -282,13 +326,6 @@ void WebSocket::process(nlohmann::json& j) {
         break;
     case WebSocket::PacketType::Disconnect:
         if (j["data"]["success"]) {
-            for (auto& it : resetSummoner) {
-                if (it == j["data"]["name"]) {
-                    auto& fp = fakePlayers.at(j["data"]["name"]);
-                    fp->summoner.name = "[Unknown]";
-                    fp->summoner.xuid = "";
-                }
-            }
             PRINT(lpk->localize("console.successfully.remove.fakeplayer"));
             sendTextAll(lpk->localize("gamemsg.successfully.remove.fakeplayer"));
         }
@@ -312,16 +349,18 @@ void WebSocket::process(nlohmann::json& j) {
         PRINT(lpk->localize("fpws.version.msg.format", j["data"]["version"].get<std::string>().c_str()));
         sendTextAll(lpk->localize("gamemsg.ws.fp.version", j["data"]["version"].get<std::string>().c_str()));
         break;
-    case WebSocket::PacketType::GetState_All:
-        for (auto& it : j["data"]["players"]) {
+    case WebSocket::PacketType::GetState_All: {
+        auto& data = j["data"]["playersData"];
+        for (auto iter = data.begin(); iter != data.end(); ++iter) {
+            auto& it = iter.value();
             auto status = (FPStatus)it["state"].get<int>();
-            auto name = it["name"].get<std::string>();
+            auto& name = iter.key();
             if (status == FPStatus::CONNECTED) {
                 if (!isOnlineFakePlayer(name)) {
                     auto pl = getPlayerByRealName(name);
                     if (pl) {
                         fakePlayers.emplace(name,
-                            std::make_unique<FakePlayer>(pl, name, it["allowChatControl"], "[Unknown]"));
+                                            std::make_unique<FakePlayer>(pl, name, it["allowChatControl"], "[Unknown]"));
                         PRINT(lpk->localize("console.found.new.fakeplayer.format", name.c_str()));
                         sendTextAll(lpk->localize("gamemsg.found.new.fakeplayer.format", name.c_str()));
                     }
@@ -330,7 +369,7 @@ void WebSocket::process(nlohmann::json& j) {
             else {
                 if (!isFakePlayer(name)) {
                     fakePlayers.emplace(name,
-                        std::make_unique<FakePlayer>(nullptr, name, it["allowChatControl"], "[Unknown]"));
+                                        std::make_unique<FakePlayer>(nullptr, name, it["allowChatControl"], "[Unknown]"));
                 }
                 else if (isOnlineFakePlayer(name)) {
                     fakePlayers[name]->setOffline();
@@ -338,6 +377,7 @@ void WebSocket::process(nlohmann::json& j) {
             }
         }
         break;
+    }
     case WebSocket::PacketType::SetChatControl: {
         auto name = j["data"]["name"].get<std::string>();
         auto exists = lastSetChatControl.count(name);
@@ -383,7 +423,7 @@ std::string WebSocket::generateID() {
     {
         // m <= r <= n
         // rand()%(n-m+1)+m
-        int random_num = rand() % 63;
+        int random_num = rand() % 62;
         res += str[random_num];
     }
     return res;
@@ -432,4 +472,25 @@ FakePlayer* getFakePlayer(const std::string& name) {
         return fakePlayers[name].get();
     }
     return nullptr;
+}
+std::vector<FakePlayer*> getOnlineFakePlayers() {
+    std::vector<FakePlayer*> res;
+    for (auto& [name, fp] : fakePlayers) {
+        if (fp->online) {
+            res.push_back(fp.get());
+        }
+    }
+    return res;
+}
+std::pair<std::vector<FakePlayer*>, std::vector<FakePlayer*>> getFakePlayersCategorized() {
+    std::vector<FakePlayer*> online, offline;
+    for (auto& [name, fp] : fakePlayers) {
+        if (fp->online) {
+            online.push_back(fp.get());
+        }
+        else {
+            offline.push_back(fp.get());
+        }
+    }
+    return std::make_pair(online, offline);
 }

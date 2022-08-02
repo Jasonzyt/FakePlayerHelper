@@ -231,7 +231,7 @@ public:
 
     template<typename ... Args>
     inline std::string localize(const std::string& key, Args... args) {
-        return FPHelper::format(this->get(key), args...);
+        return format(this->get(key), args...);
     }
     
 };

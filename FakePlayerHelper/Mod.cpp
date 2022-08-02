@@ -55,8 +55,8 @@ bool onPlayerJoin(Player* pl) {
         auto& fp = fakePlayers.at(rname);
         fp->setOnline();
         fp->setPlayerPtr(pl);
-        auto dim = lpk->localize(getDimensionName(fp->pl->getDimensionId()));
-        auto pos = Vec3ToString(fp->pl->getPos());
+        auto dim = lpk->localize(getDimensionName(pl->getDimensionId()));
+        auto pos = Vec3ToString(pl->getPos());
         PRINT(lpk->localize("console.join.info.format", fp->name.c_str(), dim.c_str(), pos.c_str()));
         sendTextAll(lpk->localize("gamemsg.join.info.format", fp->name.c_str(), dim.c_str(), pos.c_str()));
     }
@@ -67,11 +67,12 @@ bool onPlayerLeft(Player* pl) {
     if (isOnlineFakePlayer(pl)) {
         auto& fp = fakePlayers.at(getRealName(pl));
         fp->setOffline();
-        auto dim = lpk->localize(getDimensionName(fp->pl->getDimensionId()));
-        auto pos = Vec3ToString(fp->pl->getPos());
+        auto dim = lpk->localize(getDimensionName(pl->getDimensionId()));
+        auto pos = Vec3ToString(pl->getPos());
         PRINT(lpk->localize("console.left.info.format", fp->name.c_str(), dim.c_str(), pos.c_str()));
         sendTextAll(lpk->localize("gamemsg.left.info.format", fp->name.c_str(), dim.c_str(), pos.c_str()));
         fp->setPlayerPtr(nullptr);
+        fp->summoner = FakePlayer::Summoner{"[None]", 0};
     }
     if (cfg->kickFakePlayer) {
         auto xuid = getXuid(pl);
