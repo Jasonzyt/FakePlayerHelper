@@ -18,7 +18,6 @@
 #include <cstdio>
 #include <ctime>
 
-#include "build.h"
 #include "seh_excpetion.h"
 
 #define FETCH(tp, ptr) (*reinterpret_cast<tp*>(ptr))
@@ -27,6 +26,7 @@
 #undef min
 #undef ERROR
 #define BUILD_RELEASE
+#define BDS_V1_18
 #if defined(TEST_VERSION)
 //#define BDS_LATEST
 #define BDS_V1_16
@@ -34,7 +34,7 @@
 #if defined(BDS_V1_16)
 #define PRINT coutp.p
 #pragma comment(lib, "./LLSDK_1.16/LiteLoader.lib")
-#elif defined(BDS_LATEST)
+#elif defined(BDS_V1_18)
 #define PRINT lllog
 #pragma comment(lib, "./LLSDK/Lib/LiteLoader.lib")
 #pragma comment(lib, "./LLSDK/Lib/Chakra.lib")
@@ -48,9 +48,6 @@
 
 using VA = unsigned long long;
 using RVA = unsigned int;
-typedef unsigned long long u64;
-typedef unsigned int u32;
-typedef unsigned short u16;
 
 template <typename COMMITER>
 class OLogger;
@@ -58,10 +55,10 @@ class Level;
 struct stdio_commit;
 class LangPack;
 namespace fs = std::filesystem;
-// 类声明
+
 class Config;
 class WebSocket;
-// 外部变量
+
 extern void* wlfile;
 #if defined(BDS_V1_16)
 extern OLogger<stdio_commit*> coutp;
