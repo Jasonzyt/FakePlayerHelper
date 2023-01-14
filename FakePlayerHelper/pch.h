@@ -28,7 +28,7 @@
 #define BUILD_RELEASE
 #define BDS_V1_18
 #if defined(TEST_VERSION)
-//#define BDS_LATEST
+//#define BDS_V1_18
 #define BDS_V1_16
 #endif
 #if defined(BDS_V1_16)
@@ -36,10 +36,10 @@
 #pragma comment(lib, "./LLSDK_1.16/LiteLoader.lib")
 #elif defined(BDS_V1_18)
 #define PRINT lllog
-#pragma comment(lib, "./LLSDK/Lib/LiteLoader.lib")
-#pragma comment(lib, "./LLSDK/Lib/Chakra.lib")
-#pragma comment(lib, "./LLSDK/Lib/bedrock_server_api.lib")
-#pragma comment(lib, "./LLSDK/Lib/bedrock_server_var.lib")
+#pragma comment(lib, "../SDK/Lib/LiteLoader.lib")
+#pragma comment(lib, "../SDK/Lib/Chakra.lib")
+#pragma comment(lib, "../SDK/Lib/bedrock_server_api.lib")
+#pragma comment(lib, "../SDK/Lib/bedrock_server_var.lib")
 #endif
 #pragma warning(disable : 4996)
 #pragma warning(disable : 26812)

@@ -102,9 +102,9 @@ public:
     }
 };
 
-#elif defined(BDS_LATEST)
+#elif defined(BDS_V1_18)
 
-#include <Global.h>
+#include <LoggerAPI.h>
 
 template <typename Stream, typename T>
 inline void __helper(Stream& x, T&& y) {
@@ -128,19 +128,19 @@ inline void lllog(Args... args) {
         std::string s = ss.str();
         switch (lvl) {
         case DEBUG:
-            Logger("FPH").debug("{}", s);
+            Logger("FakePlayerHelper").debug("{}", s);
             break;
         case INFO:
-            Logger("FPH").info("{}", s);
+            Logger("FakePlayerHelper").info("{}", s);
             break;
         case WARN:
-            Logger("FPH").warn("{}", s);
+            Logger("FakePlayerHelper").warn("{}", s);
             break;
         case ERROR:
-            Logger("FPH").error("{}", s);
+            Logger("FakePlayerHelper").error("{}", s);
             break;
         case FATAL:
-            Logger("FPH").fatal("{}", s);
+            Logger("FakePlayerHelper").fatal("{}", s);
             break;
         }
     }

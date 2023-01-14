@@ -56,9 +56,6 @@
     <ClInclude Include="seh_excpetion.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="build.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="Mess.h">
       <Filter>Headers</Filter>
     </ClInclude>

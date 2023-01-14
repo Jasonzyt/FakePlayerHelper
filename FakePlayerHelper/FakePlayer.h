@@ -6,7 +6,7 @@
 #if defined(BDS_V1_16)
 #include <mc/Player.h>
 #include <api/types/types.h>
-#elif defined(BDS_LATEST)
+#elif defined(BDS_V1_18)
 #include <MC/Player.hpp>
 #endif
 

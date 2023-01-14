@@ -2,7 +2,9 @@
 #define CONFIG_H
 #include "pch.h"
 #include <nlohmann/json.hpp>
+#if defined(BDS_V1_16)
 #include <api/types/types.h>
+#endif
 
 class Config {
     

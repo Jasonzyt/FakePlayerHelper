@@ -6,7 +6,7 @@
 #if defined(BDS_V1_16)
 #include <loader/Loader.h>
 #include <mc/Level.h>
-#elif defined(BDS_LATEST)
+#elif defined(BDS_V1_18)
 #include <Global.h>
 #include <EventAPI.h>
 #include <MC/Minecraft.hpp>
@@ -36,7 +36,7 @@ void entry() {
     fpws = new WebSocket();
     PRINT("FakePlayerHelper started!");
     subscribeCommandRegistry();
-#if defined(BDS_LATEST)
+#if defined(BDS_V1_18)
     Event::PlayerJoinEvent::subscribe([&](const Event::PlayerJoinEvent& ev) {
         onPlayerJoin(ev.mPlayer);
         return true;    
