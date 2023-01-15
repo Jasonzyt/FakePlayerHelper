@@ -36,10 +36,11 @@
 #pragma comment(lib, "./LLSDK_1.16/LiteLoader.lib")
 #elif defined(BDS_V1_18)
 #define PRINT lllog
-#pragma comment(lib, "../SDK/Lib/LiteLoader.lib")
-#pragma comment(lib, "../SDK/Lib/Chakra.lib")
-#pragma comment(lib, "../SDK/Lib/bedrock_server_api.lib")
-#pragma comment(lib, "../SDK/Lib/bedrock_server_var.lib")
+//#pragma comment(lib, "../SDK/Lib/LiteLoader.lib")
+//#pragma comment(lib, "../SDK/Lib/Chakra.lib")
+//#pragma comment(lib, "../SDK/Lib/SymDBHelper.lib")
+//#pragma comment(lib, "../SDK/Lib/bedrock_server_api.lib")
+//#pragma comment(lib, "../SDK/Lib/bedrock_server_var.lib")
 #endif
 #pragma warning(disable : 4996)
 #pragma warning(disable : 26812)
@@ -58,8 +59,9 @@ namespace fs = std::filesystem;
 
 class Config;
 class WebSocket;
+class AllowListFile;
 
-extern void* wlfile;
+extern AllowListFile* wlfile;
 #if defined(BDS_V1_16)
 extern OLogger<stdio_commit*> coutp;
 #endif

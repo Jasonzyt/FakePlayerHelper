@@ -12,6 +12,7 @@
 #include <MC/Minecraft.hpp>
 #include <MC/Level.hpp>
 #include <MC/ServerLevel.hpp>
+#include <MC/AllowListFile.hpp>
 #endif
 
 void subscribeCommandRegistry(); // Command.cpp
@@ -27,7 +28,7 @@ OLogger<stdio_commit*> coutp(&sc, true);
 #endif
 Level* level = nullptr;
 Minecraft* mc = nullptr;
-void* wlfile = nullptr;
+AllowListFile* wlfile = nullptr;
 
 void entry() {
     PRINT("FakePlayerHelper loaded! v", VERSION.toString(), " Author: JasonZYT BuildTime: " __DATE__ " " __TIME__);
@@ -43,6 +44,11 @@ void entry() {
     });
     Event::PlayerLeftEvent::subscribe([&](const Event::PlayerLeftEvent& ev) {
         onPlayerLeft(ev.mPlayer);
+        return true;
+    });
+    Event::ServerStartedEvent::subscribe([&](const Event::ServerStartedEvent& ev) {
+        //level = mc->getLevel();
+        fpws->start();
         return true;
     });
 #endif
@@ -102,6 +108,12 @@ THook(void, "?_onPlayerLeft@ServerNetworkHandler@@AEAAXPEAVServerPlayer@@_N@Z",
     return original(thiz, sp, a3);
 }
 
+// onServerStart(getLevelPtr)
+THook(void, "?startServerThread@ServerInstance@@QEAAXXZ", void* thiz) {
+    original(thiz);
+    level = mc->getLevel();
+    fpws->start();
+}
 #endif
 
 // onTick
@@ -116,14 +128,16 @@ THook(void, "?initAsDedicatedServer@Minecraft@@QEAAXXZ", Minecraft* thiz) {
     mc = thiz;
     original(mc);
 }
-// onServerStart(getLevelPtr)
-THook(void, "?startServerThread@ServerInstance@@QEAAXXZ", void* thiz) {
-    original(thiz);
-    level = mc->getLevel();
-    fpws->start();
-}
+
+#if defined(BDS_V1_16)
 // onWhitelistFileReload(getWhitelistFilePtr)
 THook(int, "?reload@WhitelistFile@@QEAA?AW4FileReadResult@@XZ", void* a) {
     wlfile = a;
     return original(a);
 }
+#elif defined(BDS_V1_18)
+THook(int, "?reload@AllowListFile@@QEAA?AW4FileReadResult@@XZ", AllowListFile* a) {
+    wlfile = a;
+    return original(a);
+}
+#endif

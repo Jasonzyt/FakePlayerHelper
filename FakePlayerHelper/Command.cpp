@@ -405,8 +405,7 @@ public:
         registry->addEnum<Operation>("List", { {"list", Operation::List} });
         registry->addEnum<Operation>("Teleport", { {"tp", Operation::Teleport} });
         registry->addEnum<DimID>("Dimension", { {"overworld", DimID::Overworld}, 
-            {"nether", DimID::Nether}, {"the_end", DimID::TheEnd} });
-        registry->addSoftEnum("Settings", { "ChatControl" });
+            {"nether", DimID::Nether}, {"end", DimID::TheEnd} });
         registry->registerOverload<FpCommand>(
             "fp",
             ARG_ENUM(op, "Connect", "Connect"),
@@ -466,7 +465,12 @@ public:
 void subscribeCommandRegistry() {
     Event::RegCmdEvent::subscribe([&](Event::RegCmdEvent ev) {
         PRINT(lpk->localize("event.register.cmd"));
-        FpCommand::setup(ev.mCommandRegistry);
+        try {
+            FpCommand::setup(ev.mCommandRegistry);
+        }
+        catch (seh_exception e) {
+            PRINT<ERROR, RED>(e.what());
+        }
         return true;
     });
 }

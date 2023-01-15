@@ -12,6 +12,7 @@
 #include <MC/Level.hpp>
 #include <MC/Certificate.hpp>
 #include <MC/ExtendedCertificate.hpp>
+#include <MC/AllowListFile.hpp>
 #include <HookAPI.h>
 #endif
 #include "Logger.h"
@@ -27,7 +28,7 @@ struct RelativeFloat {
 #endif
 
 inline void reloadWhiteList() {
-    SymCall("?reload@WhitelistFile@@QEAA?AW4FileReadResult@@XZ", int, void*)(wlfile);
+    wlfile->reload();
 }
 inline void addPlayerToWhiteList(const std::string& name) {
     nlohmann::json j;
@@ -61,8 +62,7 @@ inline void forEachPlayer(std::function<bool(Player&)> cb) {
     SymCall("?forEachPlayer@Level@@QEBAXV?$function@$$A6A_NAEBVPlayer@@@Z@std@@@Z",
         void, Level*, std::function<bool(Player&)>)(level, cb);
 #elif defined(BDS_V1_18)
-    SymCall("?forEachPlayer@Level@@UEBAXV?$function@$$A6A_NAEBVPlayer@@@Z@std@@@Z",
-        void, Level*, std::function<bool(Player&)>)(level, cb);
+    Global<Level>->forEachPlayer(cb);
 #endif
 }
 inline std::vector<Player*> getAllPlayers() {
