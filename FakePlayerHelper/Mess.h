@@ -33,14 +33,14 @@ inline void reloadWhiteList() {
 inline void addPlayerToWhiteList(const std::string& name) {
     nlohmann::json j;
     std::ostringstream oss;
-    std::fstream fstm("whitelist.json", std::ios::app | std::ios::in);
+    std::fstream fstm("allowlist.json", std::ios::app | std::ios::in);
     oss << fstm.rdbuf();
     fstm.close();
     try {
         j = nlohmann::json::parse(oss.str());
     }
     catch (std::exception& e) {
-        PRINT<ERROR, RED>("Can't parse whitelist file: ", e.what());
+        PRINT<ERROR, RED>("Can't parse allowlist file: ", e.what());
         return;
     }
     for (auto& it : j) {
@@ -52,7 +52,7 @@ inline void addPlayerToWhiteList(const std::string& name) {
         {"name", name},
         {"ignoresPlayerLimit", false}
     });
-    fstm = std::fstream("whitelist.json", std::ios::ate | std::ios::out);
+    fstm = std::fstream("allowlist.json", std::ios::ate | std::ios::out);
     fstm << j.dump();
     fstm.close();
     reloadWhiteList();
