@@ -192,7 +192,9 @@ void onListCommand(CommandOrigin const& ori, CommandOutput& outp) {
         for (auto& fp : offlines) {
             oss << "- §7" << fp->name << "§r " << OFFLINE_STR << " Summonned by " << fp->summoner.name << std::endl;
         }
-        outp.success(oss.str());
+        auto out = oss.str();
+        out.pop_back();
+        outp.success(out);
         return;
     }
 }
