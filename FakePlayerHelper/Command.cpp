@@ -53,10 +53,15 @@ bool checkPermission(CommandOrigin const& ori, CommandOutput& outp) {
     return false;
 }
 
+void onConnectCommand(CommandOrigin const& ori, CommandOutput& outp, const std::string& name);
 void onAddCommand(CommandOrigin const& ori, CommandOutput& outp, const std::string& name) {
     if (checkPermission(ori, outp)) {
         if (isOnlineFakePlayer(name)) {
             outp.error(lpk->localize("fpcmd.fp.already.exists"), {});
+            return;
+        }
+        else if (isFakePlayer(name)) {
+            onConnectCommand(ori, outp, name);
             return;
         }
         else {
@@ -371,7 +376,7 @@ public:
                     if (!dim_set && (OriginType)ori.getOriginType() == OriginType::Player) {
                         dimid = ori.getPlayer()->getDimensionId();
                     }
-                    onTeleportCommand(ori, outp, name, dstPos.getPosition(ori, Vec3(0, 0, 0)), dimid);
+                    onTeleportCommand(ori, outp, (*res.begin())->getNameTag(), dstPos.getPosition(ori, Vec3(0, 0, 0)), dimid);
                 }
                 else {
                     auto res1 = cActor.results(ori);
@@ -383,7 +388,7 @@ public:
                         outp.error("Too many targets to teleport the FakePlayer to");
                         break;
                     }
-                    onTeleportCommand(ori, outp, name, (*res1.begin())->getPosition(), (*res1.begin())->getDimensionId());
+                    onTeleportCommand(ori, outp, (*res.begin())->getNameTag(), (*res1.begin())->getPosition(), (*res1.begin())->getDimensionId());
                 }
                 break;
             }

@@ -368,8 +368,8 @@ void WebSocket::process(nlohmann::json& j) {
             }
             else {
                 if (!isFakePlayer(name)) {
-                    fakePlayers.emplace(name,
-                                        std::make_unique<FakePlayer>(nullptr, name, it["allowChatControl"], "[Unknown]"));
+                    auto ptr = new FakePlayer(nullptr, name, it["allowChatControl"], "[Unknown]");
+                    fakePlayers.emplace(name, std::unique_ptr<FakePlayer>(ptr));
                 }
                 else if (isOnlineFakePlayer(name)) {
                     fakePlayers[name]->setOffline();

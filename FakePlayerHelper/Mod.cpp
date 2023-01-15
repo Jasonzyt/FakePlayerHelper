@@ -78,7 +78,7 @@ bool onPlayerLeft(Player* pl) {
         PRINT(lpk->localize("console.left.info.format", fp->name.c_str(), dim.c_str(), pos.c_str()));
         sendTextAll(lpk->localize("gamemsg.left.info.format", fp->name.c_str(), dim.c_str(), pos.c_str()));
         fp->setPlayerPtr(nullptr);
-        fp->summoner = FakePlayer::Summoner{"[None]", 0};
+        fp->summoner = FakePlayer::Summoner{"[None]", ""};
     }
     if (cfg->kickFakePlayer) {
         auto xuid = getXuid(pl);

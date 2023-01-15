@@ -38,7 +38,7 @@ public:
         const std::string& name,
         bool allowChatControl,
         const std::string& sname,
-        xuid_t sxuid = 0) {
+               xuid_t sxuid = "") {
         this->pl = pl;
         this->name = name;
         this->allowChatControl = allowChatControl;
