@@ -6,12 +6,13 @@
 #if defined(BDS_V1_16)
 #include <loader/Loader.h>
 #include <mc/Level.h>
-#elif defined(BDS_LATEST)
+#elif defined(BDS_V1_18)
 #include <Global.h>
 #include <EventAPI.h>
 #include <MC/Minecraft.hpp>
 #include <MC/Level.hpp>
 #include <MC/ServerLevel.hpp>
+#include <MC/AllowListFile.hpp>
 #endif
 
 void subscribeCommandRegistry(); // Command.cpp
@@ -27,7 +28,7 @@ OLogger<stdio_commit*> coutp(&sc, true);
 #endif
 Level* level = nullptr;
 Minecraft* mc = nullptr;
-void* wlfile = nullptr;
+AllowListFile* wlfile = nullptr;
 
 void entry() {
     PRINT("FakePlayerHelper loaded! v", VERSION.toString(), " Author: JasonZYT BuildTime: " __DATE__ " " __TIME__);
@@ -36,13 +37,18 @@ void entry() {
     fpws = new WebSocket();
     PRINT("FakePlayerHelper started!");
     subscribeCommandRegistry();
-#if defined(BDS_LATEST)
+#if defined(BDS_V1_18)
     Event::PlayerJoinEvent::subscribe([&](const Event::PlayerJoinEvent& ev) {
         onPlayerJoin(ev.mPlayer);
         return true;    
     });
     Event::PlayerLeftEvent::subscribe([&](const Event::PlayerLeftEvent& ev) {
         onPlayerLeft(ev.mPlayer);
+        return true;
+    });
+    Event::ServerStartedEvent::subscribe([&](const Event::ServerStartedEvent& ev) {
+        //level = mc->getLevel();
+        fpws->start();
         return true;
     });
 #endif
@@ -72,7 +78,7 @@ bool onPlayerLeft(Player* pl) {
         PRINT(lpk->localize("console.left.info.format", fp->name.c_str(), dim.c_str(), pos.c_str()));
         sendTextAll(lpk->localize("gamemsg.left.info.format", fp->name.c_str(), dim.c_str(), pos.c_str()));
         fp->setPlayerPtr(nullptr);
-        fp->summoner = FakePlayer::Summoner{"[None]", 0};
+        fp->summoner = FakePlayer::Summoner{"[None]", ""};
     }
     if (cfg->kickFakePlayer) {
         auto xuid = getXuid(pl);
@@ -102,6 +108,12 @@ THook(void, "?_onPlayerLeft@ServerNetworkHandler@@AEAAXPEAVServerPlayer@@_N@Z",
     return original(thiz, sp, a3);
 }
 
+// onServerStart(getLevelPtr)
+THook(void, "?startServerThread@ServerInstance@@QEAAXXZ", void* thiz) {
+    original(thiz);
+    level = mc->getLevel();
+    fpws->start();
+}
 #endif
 
 // onTick
@@ -116,14 +128,16 @@ THook(void, "?initAsDedicatedServer@Minecraft@@QEAAXXZ", Minecraft* thiz) {
     mc = thiz;
     original(mc);
 }
-// onServerStart(getLevelPtr)
-THook(void, "?startServerThread@ServerInstance@@QEAAXXZ", void* thiz) {
-    original(thiz);
-    level = mc->getLevel();
-    fpws->start();
-}
+
+#if defined(BDS_V1_16)
 // onWhitelistFileReload(getWhitelistFilePtr)
 THook(int, "?reload@WhitelistFile@@QEAA?AW4FileReadResult@@XZ", void* a) {
     wlfile = a;
     return original(a);
 }
+#elif defined(BDS_V1_18)
+THook(int, "?reload@AllowListFile@@QEAA?AW4FileReadResult@@XZ", AllowListFile* a) {
+    wlfile = a;
+    return original(a);
+}
+#endif

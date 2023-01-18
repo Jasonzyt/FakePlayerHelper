@@ -6,7 +6,7 @@
 #if defined(BDS_V1_16)
 #include <mc/Player.h>
 #include <api/types/types.h>
-#elif defined(BDS_LATEST)
+#elif defined(BDS_V1_18)
 #include <MC/Player.hpp>
 #endif
 
@@ -38,7 +38,7 @@ public:
         const std::string& name,
         bool allowChatControl,
         const std::string& sname,
-        xuid_t sxuid = 0) {
+               xuid_t sxuid = "") {
         this->pl = pl;
         this->name = name;
         this->allowChatControl = allowChatControl;

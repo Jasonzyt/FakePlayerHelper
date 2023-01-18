@@ -1,6 +1,6 @@
 // dllmain.cpp : 定义 DLL 应用程序的入口点。
 #include "pch.h"
-#if defined(BDS_LATEST)
+#if defined(BDS_V1_18)
 #include <LLAPI.h>
 #endif
 
@@ -23,7 +23,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
     {
     case DLL_PROCESS_ATTACH:
         initConsole();
-#if defined(BDS_LATEST)
+#if defined(BDS_V1_18)
             LL::registerPlugin("FakePlayerHelper", "A manager for FakePlayer", 
                 LL::Version(VERSION.major, VERSION.minor, VERSION.patch, 
                 (LL::Version::Status)VERSION.tag), 

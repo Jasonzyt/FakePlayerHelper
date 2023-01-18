@@ -7,11 +7,12 @@
 #include <mc/Certificate.h>
 #include <api/types/types.h>
 #include <loader/loader.h>
-#elif defined(BDS_LATEST)
+#elif defined(BDS_V1_18)
 #include <MC/Player.hpp>
 #include <MC/Level.hpp>
 #include <MC/Certificate.hpp>
 #include <MC/ExtendedCertificate.hpp>
+#include <MC/AllowListFile.hpp>
 #include <HookAPI.h>
 #endif
 #include "Logger.h"
@@ -27,7 +28,7 @@ struct RelativeFloat {
 #endif
 
 inline void reloadWhiteList() {
-    SymCall("?reload@WhitelistFile@@QEAA?AW4FileReadResult@@XZ", int, void*)(wlfile);
+    wlfile->reload();
 }
 inline void addPlayerToWhiteList(const std::string& name) {
     nlohmann::json j;
@@ -60,9 +61,8 @@ inline void forEachPlayer(std::function<bool(Player&)> cb) {
 #if defined(BDS_V1_16)
     SymCall("?forEachPlayer@Level@@QEBAXV?$function@$$A6A_NAEBVPlayer@@@Z@std@@@Z",
         void, Level*, std::function<bool(Player&)>)(level, cb);
-#elif defined(BDS_LATEST)
-    SymCall("?forEachPlayer@Level@@UEBAXV?$function@$$A6A_NAEBVPlayer@@@Z@std@@@Z",
-        void, Level*, std::function<bool(Player&)>)(level, cb);
+#elif defined(BDS_V1_18)
+    Global<Level>->forEachPlayer(cb);
 #endif
 }
 inline std::vector<Player*> getAllPlayers() {
@@ -94,7 +94,7 @@ inline void sendText(Player* pl, const std::string& text, TextType tp = TextType
     auto pkt = SymCall("?createSystemMessage@TextPacket@@SA?AV1@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z", TextPacket, const std::string&)(text);
     pl->sendNetworkPacket(*((Packet*)&pkt));
     
-#elif defined(BDS_LATEST)
+#elif defined(BDS_V1_18)
     pl->sendTextPacket(text, tp);
 #endif
 }
@@ -127,7 +127,7 @@ inline std::string getVersion() {
 inline Certificate* getCert(Player* pl) {
 #if defined(BDS_V1_16)
     return FETCH(Certificate*, pl + 2736);
-#elif defined(BDS_LATEST)
+#elif defined(BDS_V1_18)
     return pl->getCertificate();
 #endif
 }
@@ -136,7 +136,7 @@ inline xuid_t getXuid(Player* pl) {
     return std::stoull(SymCall(
         "?getXuid@ExtendedCertificate@@SA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@"
         "@std@@AEBVCertificate@@@Z", std::string, void*)(getCert(pl)));
-#elif defined(BDS_LATEST)
+#elif defined(BDS_V1_18)
     return pl->getXuid();
 #endif
 }
@@ -145,7 +145,7 @@ inline std::string getRealName(Player* pl) {
     return SymCall(
         "?getIdentityName@ExtendedCertificate@@SA?AV?$basic_string@DU?$char_traits@D@std@@V?$"
         "allocator@D@2@@std@@AEBVCertificate@@@Z", std::string, void*)(getCert(pl));
-#elif defined(BDS_LATEST)
+#elif defined(BDS_V1_18)
     return ExtendedCertificate::getIdentityName(*pl->getCertificate());
 #endif
 }
@@ -161,7 +161,7 @@ inline void teleport(Actor* actor, Vec3 dst, int dim) {
     catch (const seh_excpetion& e) {
         PRINT<ERROR, RED>("SEH Exception: [", e.code(), ']', e.what());
     }
-#elif defined(BDS_LATEST)
+#elif defined(BDS_V1_18)
     actor->teleport(dst, dim);
 #endif
 }

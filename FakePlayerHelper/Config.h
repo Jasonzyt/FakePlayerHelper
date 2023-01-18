@@ -2,7 +2,9 @@
 #define CONFIG_H
 #include "pch.h"
 #include <nlohmann/json.hpp>
+#if defined(BDS_V1_16)
 #include <api/types/types.h>
+#endif
 
 class Config {
     
@@ -47,7 +49,7 @@ public:
     }
     inline void write()
     {
-        std::fstream fstm(file, std::ios::out | std::ios::ate);
+        std::fstream fstm(file, std::ios::out | std::ios::trunc);
         if (!fstm.is_open()) {
             PRINT<ERROR, RED>("Can't open config file: ", file);
             return;

@@ -8,9 +8,10 @@
 #include <mc/Command.h>
 #include <mc/CommandReg.h>
 #include <api/Basic_Event.h>
-#elif defined(BDS_LATEST)
+#elif defined(BDS_V1_18)
 #include <EventAPI.h>
 #include <RegCommandAPI.h>
+#include <MC/ServerPlayer.hpp>
 
 #endif
 
@@ -52,10 +53,15 @@ bool checkPermission(CommandOrigin const& ori, CommandOutput& outp) {
     return false;
 }
 
+void onConnectCommand(CommandOrigin const& ori, CommandOutput& outp, const std::string& name);
 void onAddCommand(CommandOrigin const& ori, CommandOutput& outp, const std::string& name) {
     if (checkPermission(ori, outp)) {
         if (isOnlineFakePlayer(name)) {
             outp.error(lpk->localize("fpcmd.fp.already.exists"), {});
+            return;
+        }
+        else if (isFakePlayer(name)) {
+            onConnectCommand(ori, outp, name);
             return;
         }
         else {
@@ -186,7 +192,9 @@ void onListCommand(CommandOrigin const& ori, CommandOutput& outp) {
         for (auto& fp : offlines) {
             oss << "- §7" << fp->name << "§r " << OFFLINE_STR << " Summonned by " << fp->summoner.name << std::endl;
         }
-        outp.success(oss.str());
+        auto out = oss.str();
+        out.pop_back();
+        outp.success(out);
         return;
     }
 }
@@ -209,10 +217,10 @@ enum class Operation_RemoveAll {
     RemoveAll = 1,
 };
 enum class Operation_Teleport {
-	Teleport = 1,
+    Teleport = 1,
 };
 enum class Operation_List {
-	List = 1,
+    List = 1,
 };
 
 bool _onAddCommand(CommandOrigin const& ori, CommandOutput& outp, MyEnum<Operation_Add>, const std::string& name) {
@@ -287,7 +295,7 @@ void subscribeCommandRegistry() {
     });
 }
 
-#elif defined(BDS_LATEST)
+#elif defined(BDS_V1_18)
 
 #define TYPE_SOFT_ENUM CommandParameterDataType::SOFT_ENUM
 #define TYPE_ENUM CommandParameterDataType::ENUM
@@ -312,7 +320,7 @@ class FpCommand : public Command {
         Teleport
     } op;
     enum DimID : int {
-        Overworld,
+        Overworld = 0,
         Nether,
         TheEnd
     } dim;
@@ -321,17 +329,73 @@ class FpCommand : public Command {
     bool val = false;
     bool acc = true; // Allow chat control
     CommandSelector<Actor> cActor;
-    CommandSelector<Actor> cPlayer;
+    CommandSelector<Player> cPlayer;
     CommandPosition dstPos;
 
     bool acc_set = false;
     bool val_set = false;
     bool dim_set = false;
+    bool pos_set = false;
 
 public:
 
-    void execute(CommandOrigin const& ori, CommandOutput& outp) {
+    void execute(CommandOrigin const& ori, CommandOutput& outp) const {
+        switch (op) {
+            case Operation::Add:
+                onAddCommand(ori, outp, name);
+                break;
+            case Operation::Connect:
+                onConnectCommand(ori, outp, name);
+                break;
+            case Operation::Remove: {
+                auto res = cPlayer.results(ori);
+                if (res.empty()) {
+                    outp.error("No FakePlayer to remove");
+                    break;
+                }
+                for (auto it = res.begin(); it != res.end(); ++it) {
+                    onRemoveCommand(ori, outp, (*it)->getNameTag());
+                }
+                break;
+            }
+            case Operation::Delete:
+                onDeleteCommand(ori, outp, name);
+                break;
+            case Operation::RemoveAll:
+                onRemoveAllCommand(ori, outp);
+                break;
+            case Operation::List:
+                onListCommand(ori, outp);
+                break;
+            case Operation::Teleport: {
+                auto res = cPlayer.results(ori);
+                if (res.empty()) {
+                    outp.error("No FakePlayer to teleport");
+                    break;
+                }
+                if (pos_set) {
+                    int dimid = dim_set ? dim : 0;
+                    if (!dim_set && (OriginType)ori.getOriginType() == OriginType::Player) {
+                        dimid = ori.getPlayer()->getDimensionId();
+                    }
+                    onTeleportCommand(ori, outp, (*res.begin())->getNameTag(), dstPos.getPosition(ori, Vec3(0, 0, 0)), dimid);
+                }
+                else {
+                    auto res1 = cActor.results(ori);
+                    if (res1.empty()) {
+                        outp.error("No target to teleport the FakePlayer to");
+                        break;
+                    }
+                    if (res1.count() != 1) {
+                        outp.error("Too many targets to teleport the FakePlayer to");
+                        break;
+                    }
+                    onTeleportCommand(ori, outp, (*res.begin())->getNameTag(), (*res1.begin())->getPosition(), (*res1.begin())->getDimensionId());
+                }
+                break;
+            }
 
+        }
     }
 
     static void setup(CommandRegistry* registry) {
@@ -348,14 +412,17 @@ public:
         registry->addEnum<Operation>("List", { {"list", Operation::List} });
         registry->addEnum<Operation>("Teleport", { {"tp", Operation::Teleport} });
         registry->addEnum<DimID>("Dimension", { {"overworld", DimID::Overworld}, 
-            {"nether", DimID::Nether}, {"the_end", DimID::TheEnd} });
-        registry->addSoftEnum("Settings", { "ChatControl" });
-        registry->registerOverload<FpCommand>("fp", ARG_ENUM(op, "Connect", "Connect"));
+            {"nether", DimID::Nether}, {"end", DimID::TheEnd} });
+        registry->registerOverload<FpCommand>(
+            "fp",
+            ARG_ENUM(op, "Connect", "Connect"),
+            ARG(name, "FakePlayer name")
+        );
         registry->registerOverload<FpCommand>(
             "fp",
             ARG_ENUM(op, "Add", "Add"),
-            ARG(name, "FakePlayer name"),
-            ARG_OPTION(acc, acc_set, "Allow chat control(default true)")
+            ARG(name, "FakePlayer name")
+            //ARG_OPTION(acc, acc_set, "Allow chat control(default true)")
         );
         registry->registerOverload<FpCommand>(
             "fp",
@@ -368,14 +435,14 @@ public:
             ARG_ENUM(op, "Delete", "Delete"),
             ARG(name, "FakePlayer name")
         );
-        registry->registerOverload<FpCommand>(
+        /*registry->registerOverload<FpCommand>(
             "fp",
             ARG_ENUM(op, "Set", "Set"),
             ARG(name, "FakePlayer name"),
             makeMandatory<TYPE_SOFT_ENUM>(
                 &FpCommand::settings, "Settings name", "Settings"),
             ARG(val, "Value")
-        );
+        );*/
         registry->registerOverload<FpCommand>(
             "fp",
             ARG_ENUM(op, "List", "List"),
@@ -392,7 +459,7 @@ public:
                 "fp",
                 ARG_ENUM(op, "Teleport", "Teleport"),
                 ARG(cPlayer, "FakePlayer"),
-                ARG(dstPos, "Dst"),
+                makeMandatory(&FpCommand::dstPos, "Dst", &FpCommand::pos_set),
                 makeOptional<TYPE_ENUM>(
                     &FpCommand::dim, "Dimension", "Dimension", &FpCommand::dim_set)
             );
@@ -405,7 +472,12 @@ public:
 void subscribeCommandRegistry() {
     Event::RegCmdEvent::subscribe([&](Event::RegCmdEvent ev) {
         PRINT(lpk->localize("event.register.cmd"));
-        FpCommand::setup(ev.mCommandRegistry);
+        try {
+            FpCommand::setup(ev.mCommandRegistry);
+        }
+        catch (seh_exception e) {
+            PRINT<ERROR, RED>(e.what());
+        }
         return true;
     });
 }

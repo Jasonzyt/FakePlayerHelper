@@ -56,9 +56,6 @@
     <ClInclude Include="seh_excpetion.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="build.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="Mess.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -75,6 +72,21 @@
   </ItemGroup>
   <ItemGroup>
     <Library Include="third-party\easywsclient\easywsclient.lib">
+      <Filter>Lib</Filter>
+    </Library>
+    <Library Include="..\SDK\lib\SymDBHelper.lib">
+      <Filter>Lib</Filter>
+    </Library>
+    <Library Include="..\SDK\lib\bedrock_server_api.lib">
+      <Filter>Lib</Filter>
+    </Library>
+    <Library Include="..\SDK\lib\bedrock_server_var.lib">
+      <Filter>Lib</Filter>
+    </Library>
+    <Library Include="..\SDK\lib\Chakra.lib">
+      <Filter>Lib</Filter>
+    </Library>
+    <Library Include="..\SDK\lib\LiteLoader.lib">
       <Filter>Lib</Filter>
     </Library>
   </ItemGroup>

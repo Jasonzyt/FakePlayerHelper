@@ -131,7 +131,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>./third-party;./LLSDK_1.16;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)SDK/Header;$(ProjectDir)third-party;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
     </ClCompile>
@@ -140,6 +140,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <DelayLoadDLLs>bedrock_server.dll</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -150,7 +151,6 @@
     <ClCompile Include="pch.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="build.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="FakePlayer.h" />
     <ClInclude Include="LangPack.h" />
@@ -167,6 +167,11 @@
     <ResourceCompile Include="FakePlayerHelper.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Library Include="..\SDK\lib\bedrock_server_api.lib" />
+    <Library Include="..\SDK\lib\bedrock_server_var.lib" />
+    <Library Include="..\SDK\lib\Chakra.lib" />
+    <Library Include="..\SDK\lib\LiteLoader.lib" />
+    <Library Include="..\SDK\lib\SymDBHelper.lib" />
     <Library Include="third-party\easywsclient\easywsclient.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
